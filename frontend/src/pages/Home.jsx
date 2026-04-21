@@ -68,7 +68,7 @@ const FERRAMENTAS = [
   },
   {
     slug: 'tax-regime-diagnostic',
-    nome: 'Diagnóstico de Regime Tributário',
+    nome: 'Tax Better',
     descricao: 'Descubra se sua empresa está no regime mais vantajoso e quanto você pode economizar.',
     Icon: IconChart,
   },

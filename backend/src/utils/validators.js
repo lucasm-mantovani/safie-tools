@@ -47,6 +47,15 @@ export const equityCalculatorSchema = z.object({
   business_segment: z.string().min(1, 'Segmento é obrigatório'),
 })
 
+// Tax Better
+export const taxBetterSchema = z.object({
+  annual_revenue_range: z.enum(['ate_81k', '81k_360k', '360k_1M', '1M_4_8M', '4_8M_78M', 'acima_78M']),
+  current_regime: z.enum(['mei', 'simples', 'lucro_presumido', 'lucro_real', 'nao_sei']),
+  activity_type: z.enum(['servicos', 'produtos', 'misto']),
+  profit_margin: z.enum(['ate_10', '10_a_20', '20_a_30', 'acima_30']),
+  last_reviewed: z.enum(['nunca', 'menos_1_ano', '1_a_2_anos', 'mais_2_anos']),
+})
+
 // Middleware de validação reutilizável
 export function validate(schema) {
   return (req, res, next) => {

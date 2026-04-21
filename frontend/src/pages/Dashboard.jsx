@@ -68,9 +68,9 @@ const FERRAMENTAS = [
     cor: '#154efa',
   },
   {
-    slug: 'tax-regime-diagnostic',
-    nome: 'Regime Tributário',
-    nomeCompleto: 'Diagnóstico de Regime Tributário',
+    slug: 'tax-better',
+    nome: 'Tax Better',
+    nomeCompleto: 'Tax Better',
     descricao: 'Descubra se o regime atual da sua empresa é o mais vantajoso.',
     tempo: '3–5 min',
     Icon: IconChart,

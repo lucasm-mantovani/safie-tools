@@ -8,6 +8,7 @@ import Register from './pages/Register'
 import CompleteProfile from './pages/CompleteProfile'
 import Dashboard from './pages/Dashboard'
 import EquityCalculator from './pages/tools/equity-calculator'
+import TaxBetter from './pages/tools/tax-better'
 
 // Rota protegida — redireciona para /login se não autenticado
 function PrivateRoute({ children }) {
@@ -93,6 +94,10 @@ export default function App() {
         <Route
           path="/ferramentas/equity-calculator"
           element={<PrivateRoute><PageWrapper><EquityCalculator /></PageWrapper></PrivateRoute>}
+        />
+        <Route
+          path="/ferramentas/tax-better"
+          element={<PrivateRoute><PageWrapper><TaxBetter /></PageWrapper></PrivateRoute>}
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
