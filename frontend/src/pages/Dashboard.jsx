@@ -60,8 +60,8 @@ function IconWallet() {
 const FERRAMENTAS = [
   {
     slug: 'equity-calculator',
-    nome: 'Divisão de Participações',
-    nomeCompleto: 'Calculadora de Divisão de Participações Societárias',
+    nome: 'Equity Calculator',
+    nomeCompleto: 'Equity Calculator',
     descricao: 'Simule a divisão justa de cotas entre sócios com critérios objetivos.',
     tempo: '5–10 min',
     Icon: IconBalance,

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 const FERRAMENTAS_FOOTER = [
-  { slug: 'equity-calculator', nome: 'Divisão de Participações' },
+  { slug: 'equity-calculator', nome: 'Equity Calculator' },
   { slug: 'tax-regime-diagnostic', nome: 'Diagnóstico Tributário' },
   { slug: 'pj-risk-calculator', nome: 'Risco de Contratação PJ' },
   { slug: 'due-diligence-checklist', nome: 'Due Diligence' },

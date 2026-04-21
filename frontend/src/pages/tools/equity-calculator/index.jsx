@@ -116,7 +116,7 @@ export default function EquityCalculator() {
       { label: 'Segmento', value: context.business_segment },
     ]
     generatePdfFromData({
-      title: 'Divisão de Participações Societárias',
+      title: 'Equity Calculator',
       sections,
       fileName: 'equity-safie-tools',
     })
@@ -144,7 +144,7 @@ export default function EquityCalculator() {
             Ferramenta 1 de 6
           </p>
           <h1 className="font-heading text-3xl font-bold text-bg-dark mb-2">
-            Divisão de Participações Societárias
+            Equity Calculator
           </h1>
           <p className="font-body text-sm text-gray-500">
             Simule a distribuição justa de cotas entre sócios com critérios objetivos.
