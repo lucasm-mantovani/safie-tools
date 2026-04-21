@@ -10,6 +10,9 @@ import Dashboard from './pages/Dashboard'
 import EquityCalculator from './pages/tools/equity-calculator'
 import TaxBetter from './pages/tools/tax-better'
 import LaborRisk from './pages/tools/labor-risk'
+import FastDueDiligence from './pages/tools/fast-due-diligence'
+import LitigationCost from './pages/tools/litigation-cost'
+import PartnersCash from './pages/tools/partners-cash'
 
 // Rota protegida — redireciona para /login se não autenticado
 function PrivateRoute({ children }) {
@@ -103,6 +106,18 @@ export default function App() {
         <Route
           path="/ferramentas/labor-risk"
           element={<PrivateRoute><PageWrapper><LaborRisk /></PageWrapper></PrivateRoute>}
+        />
+        <Route
+          path="/ferramentas/fast-due-diligence"
+          element={<PrivateRoute><PageWrapper><FastDueDiligence /></PageWrapper></PrivateRoute>}
+        />
+        <Route
+          path="/ferramentas/litigation-cost"
+          element={<PrivateRoute><PageWrapper><LitigationCost /></PageWrapper></PrivateRoute>}
+        />
+        <Route
+          path="/ferramentas/partners-cash"
+          element={<PrivateRoute><PageWrapper><PartnersCash /></PageWrapper></PrivateRoute>}
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />

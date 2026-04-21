@@ -4,9 +4,9 @@ const FERRAMENTAS_FOOTER = [
   { slug: 'equity-calculator', nome: 'Equity Calculator' },
   { slug: 'tax-better', nome: 'Tax Better' },
   { slug: 'labor-risk', nome: 'Labor Risk' },
-  { slug: 'due-diligence-checklist', nome: 'Due Diligence' },
-  { slug: 'litigation-cost-simulator', nome: 'Custo de Litígio' },
-  { slug: 'prolabore-calculator', nome: 'Pró-labore Ideal' },
+  { slug: 'fast-due-diligence', nome: 'Fast Due Diligence' },
+  { slug: 'litigation-cost', nome: 'Litigation Cost' },
+  { slug: 'partners-cash', nome: 'Partners Cash' },
 ]
 
 export default function Footer() {

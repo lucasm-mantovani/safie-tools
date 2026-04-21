@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { listTools, saveSession, getSessionsByUser, calculateEquity, calculateTaxBetter, calculateLaborRisk } from '../controllers/toolsController.js'
+import { listTools, saveSession, getSessionsByUser, calculateEquity, calculateTaxBetter, calculateLaborRisk, calculateFastDueDiligence, calculateLitigationCost, calculatePartnersCash } from '../controllers/toolsController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
-import { validate, equityCalculatorSchema, taxBetterSchema, laborRiskSchema } from '../utils/validators.js'
+import { validate, equityCalculatorSchema, taxBetterSchema, laborRiskSchema, fastDueDiligenceSchema, litigationCostSchema, partnersCashSchema } from '../utils/validators.js'
 
 const router = Router()
 
@@ -16,6 +16,15 @@ router.post('/tax-better', authMiddleware, validate(taxBetterSchema), calculateT
 
 // POST /api/tools/labor-risk — avalia risco trabalhista de contratos PJ
 router.post('/labor-risk', authMiddleware, validate(laborRiskSchema), calculateLaborRisk)
+
+// POST /api/tools/fast-due-diligence
+router.post('/fast-due-diligence', authMiddleware, validate(fastDueDiligenceSchema), calculateFastDueDiligence)
+
+// POST /api/tools/litigation-cost
+router.post('/litigation-cost', authMiddleware, validate(litigationCostSchema), calculateLitigationCost)
+
+// POST /api/tools/partners-cash
+router.post('/partners-cash', authMiddleware, validate(partnersCashSchema), calculatePartnersCash)
 
 // POST /api/tools/sessions — salva sessão de uso de ferramenta
 router.post('/sessions', authMiddleware, saveSession)

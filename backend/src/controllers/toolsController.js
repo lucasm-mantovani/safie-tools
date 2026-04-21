@@ -405,6 +405,356 @@ export async function calculateLaborRisk(req, res, next) {
   }
 }
 
+// ── Fast Due Diligence ────────────────────────────────────────────────────────
+
+const CHECKLIST_LIBRARY = [
+  // Societário
+  { id: 's1', area: 'societario', title: 'Contrato ou Estatuto Social atualizado', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 's2', area: 'societario', title: 'Acordo de Sócios vigente', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 's3', area: 'societario', title: 'Cap table atualizado', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 's4', area: 'societario', title: 'Atas de reuniões dos últimos 2 anos', priority: 'media', ops: ['ma','venda_participacao'] },
+  { id: 's5', area: 'societario', title: 'Certidão de regularidade na Junta Comercial', priority: 'alta', ops: ['ma','venda_participacao'] },
+  { id: 's6', area: 'societario', title: 'Registro de transferências de quotas', priority: 'media', ops: ['ma','venda_participacao'] },
+  // Fiscal
+  { id: 'f1', area: 'fiscal', title: 'Certidões negativas federais (CND/PGFN)', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 'f2', area: 'fiscal', title: 'Certidões negativas estaduais e municipais', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 'f3', area: 'fiscal', title: 'Declarações fiscais dos últimos 3 anos', priority: 'media', ops: ['ma','venda_participacao'] },
+  { id: 'f4', area: 'fiscal', title: 'Parcelamentos tributários em aberto', priority: 'alta', ops: ['ma','venda_participacao'] },
+  { id: 'f5', area: 'fiscal', title: 'Enquadramento e regime tributário atual', priority: 'media', ops: ['captacao','ma','venda_participacao'] },
+  // Trabalhista
+  { id: 't1', area: 'trabalhista', title: 'Contratos de trabalho e aditivos vigentes', priority: 'alta', ops: ['ma','venda_participacao'] },
+  { id: 't2', area: 'trabalhista', title: 'Processos trabalhistas em andamento', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 't3', area: 'trabalhista', title: 'Contratos com prestadores PJ', priority: 'media', ops: ['captacao','ma','venda_participacao'] },
+  { id: 't4', area: 'trabalhista', title: 'FGTS — extrato e comprovantes de recolhimento', priority: 'media', ops: ['ma','venda_participacao'] },
+  { id: 't5', area: 'trabalhista', title: 'Folha de pagamento e encargos dos últimos 12 meses', priority: 'media', ops: ['ma','venda_participacao'] },
+  // Propriedade Intelectual
+  { id: 'pi1', area: 'propriedade_intelectual', title: 'Registro de marca no INPI', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 'pi2', area: 'propriedade_intelectual', title: 'Contratos de cessão de PI com colaboradores', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 'pi3', area: 'propriedade_intelectual', title: 'Registro de software (INPI)', priority: 'media', ops: ['captacao','ma'] },
+  { id: 'pi4', area: 'propriedade_intelectual', title: 'Domínios e ativos digitais registrados', priority: 'media', ops: ['captacao','ma'] },
+  // Compliance
+  { id: 'c1', area: 'compliance', title: 'Política de privacidade e LGPD', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 'c2', area: 'compliance', title: 'Licenças e alvarás de funcionamento', priority: 'alta', ops: ['ma','venda_participacao'] },
+  { id: 'c3', area: 'compliance', title: 'DPO designado (se obrigatório)', priority: 'media', ops: ['ma','venda_participacao'] },
+  // Contratos
+  { id: 'ct1', area: 'contratos', title: 'Contratos com clientes principais', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 'ct2', area: 'contratos', title: 'Contratos com fornecedores-chave', priority: 'media', ops: ['ma','venda_participacao'] },
+  { id: 'ct3', area: 'contratos', title: 'NDAs assinados com terceiros', priority: 'media', ops: ['captacao','ma'] },
+  { id: 'ct4', area: 'contratos', title: 'Termos de uso e SLA com clientes', priority: 'media', ops: ['captacao','ma'] },
+  // Financeiro
+  { id: 'fin1', area: 'financeiro', title: 'Balanço patrimonial dos últimos 2 anos', priority: 'alta', ops: ['ma','venda_participacao'] },
+  { id: 'fin2', area: 'financeiro', title: 'DRE (Demonstração de Resultado)', priority: 'alta', ops: ['captacao','ma','venda_participacao'] },
+  { id: 'fin3', area: 'financeiro', title: 'Fluxo de caixa projetado', priority: 'alta', ops: ['captacao','ma'] },
+  { id: 'fin4', area: 'financeiro', title: 'Dívidas e passivos contingentes', priority: 'alta', ops: ['ma','venda_participacao'] },
+  { id: 'fin5', area: 'financeiro', title: 'Extratos bancários dos últimos 12 meses', priority: 'media', ops: ['ma','venda_participacao'] },
+]
+
+const AREA_LABELS = {
+  societario: 'Societário', fiscal: 'Fiscal', trabalhista: 'Trabalhista',
+  propriedade_intelectual: 'Propriedade Intelectual', compliance: 'Compliance',
+  contratos: 'Contratos', financeiro: 'Financeiro',
+}
+
+// Prazo estimado por área em semanas baseado no porte da empresa
+const AREA_WEEKS = { micro: 1, pequena: 2, media: 3, grande: 4 }
+
+export async function calculateFastDueDiligence(req, res, next) {
+  try {
+    const { operation_type, timeline_months, has_legal_advisor, company_size, has_shareholders_agreement } = req.body
+
+    const filtered = CHECKLIST_LIBRARY.filter((item) => item.ops.includes(operation_type))
+
+    // Agrupa por área
+    const areaMap = {}
+    filtered.forEach((item) => {
+      if (!areaMap[item.area]) areaMap[item.area] = []
+      areaMap[item.area].push({ id: item.id, title: item.title, priority: item.priority })
+    })
+
+    const weeks_per_area = AREA_WEEKS[company_size] || 2
+    const areas = Object.entries(areaMap).map(([area, items]) => ({
+      area,
+      label: AREA_LABELS[area],
+      items,
+      estimated_weeks: weeks_per_area,
+      high_priority_count: items.filter((i) => i.priority === 'alta').length,
+    }))
+
+    const total_items = filtered.length
+    const high_priority = filtered.filter((i) => i.priority === 'alta').length
+    const tight_timeline = ['ate_3', '3_a_6'].includes(timeline_months)
+
+    // SQL tag: prazo <= 6 meses e sem assessor jurídico
+    const dd_sql_tag = tight_timeline && !has_legal_advisor
+
+    const qualification_data = {
+      dd_operation_type: operation_type,
+      dd_timeline_months: timeline_months,
+      dd_has_legal_advisor: has_legal_advisor,
+      dd_sql_tag,
+    }
+
+    const result = {
+      areas,
+      total_items,
+      high_priority,
+      tight_timeline,
+      has_legal_advisor,
+      has_shareholders_agreement,
+      operation_type,
+    }
+
+    const session = await supabaseService.createToolSession({
+      userId: req.user.id,
+      toolSlug: 'fast-due-diligence',
+      inputData: req.body,
+      outputData: result,
+      qualificationData: qualification_data,
+    })
+
+    ;(async () => {
+      try {
+        const { data: profile } = await supabaseAdmin.from('profiles').select('hubspot_contact_id').eq('id', req.user.id).single()
+        if (!profile?.hubspot_contact_id) return
+        const { count: sessionCount } = await supabaseAdmin.from('tool_sessions').select('id', { count: 'exact' }).eq('user_id', req.user.id)
+        await hubspotService.updateContact(profile.hubspot_contact_id, {
+          safie_tools_last_tool_used: 'fast-due-diligence',
+          safie_tools_sessions_count: String(sessionCount || 0),
+          dd_operation_type: operation_type,
+          dd_timeline_months: timeline_months,
+          dd_has_legal_advisor: String(has_legal_advisor),
+          dd_sql_tag: String(dd_sql_tag),
+        })
+        await supabaseAdmin.from('tool_sessions').update({ hubspot_synced: true }).eq('id', session.id)
+      } catch (err) { console.error('[HubSpot] Sync fast-due-diligence falhou:', err.message) }
+    })()
+
+    res.status(201).json({ result, qualification_data, session_id: session.id })
+  } catch (err) { next(err) }
+}
+
+// ── Litigation Cost ───────────────────────────────────────────────────────────
+
+const DISPUTE_MID = {
+  ate_10k: 5000, '10k_50k': 30000, '50k_200k': 125000,
+  '200k_1M': 600000, acima_1M: 1500000,
+}
+
+function calcLitigationCosts(input) {
+  const { conflict_type, dispute_value_range, has_lawyer, instance, estimated_duration, success_probability } = input
+  const value = DISPUTE_MID[dispute_value_range]
+
+  // Custas processuais por tipo e instância
+  const court_fee_rate = {
+    trabalhista: { primeira: 0.02, segunda: 0.04, superior: 0.05 },
+    civel:       { primeira: 0.015, segunda: 0.03, superior: 0.04 },
+    societario:  { primeira: 0.015, segunda: 0.03, superior: 0.04 },
+    fiscal:      { primeira: 0.01, segunda: 0.02, superior: 0.03 },
+  }
+  const court_fees = Math.min(value * (court_fee_rate[conflict_type]?.[instance] || 0.02), 50000)
+
+  // Honorários advocatícios (estimativa OAB)
+  const lawyer_rate = conflict_type === 'trabalhista' ? 0.25 : 0.15
+  const lawyer_fees = has_lawyer ? 0 : value * lawyer_rate
+
+  // Risco de condenação
+  const loss_risk = value * (1 - success_probability / 100)
+
+  // Custo de oportunidade (1% ao mês do valor disputado)
+  const duration_months = { ate_1_ano: 10, '1_a_3_anos': 24, acima_3_anos: 48 }
+  const months = duration_months[estimated_duration] || 24
+  const opportunity_cost = value * 0.01 * months
+
+  const total = court_fees + lawyer_fees + loss_risk + opportunity_cost
+
+  // Faixa sugerida para acordo (60-75% do valor em disputa)
+  const settlement_min = Math.round(value * 0.5)
+  const settlement_max = Math.round(value * 0.75)
+
+  const recommend_settlement = total > value * 0.5
+
+  return {
+    dispute_value_estimated: value,
+    court_fees: Math.round(court_fees),
+    lawyer_fees: Math.round(lawyer_fees),
+    loss_risk: Math.round(loss_risk),
+    opportunity_cost: Math.round(opportunity_cost),
+    total_litigation_cost: Math.round(total),
+    settlement_range: { min: settlement_min, max: settlement_max },
+    recommend_settlement,
+    cost_vs_value_pct: Math.round((total / value) * 100),
+  }
+}
+
+export async function calculateLitigationCost(req, res, next) {
+  try {
+    const { conflict_type, dispute_value_range, has_lawyer } = req.body
+
+    const costs = calcLitigationCosts(req.body)
+
+    const high_value = ['50k_200k', '200k_1M', 'acima_1M'].includes(dispute_value_range)
+    const litigation_sql_tag = high_value && !has_lawyer
+
+    const qualification_data = {
+      litigation_conflict_type: conflict_type,
+      litigation_dispute_value: dispute_value_range,
+      litigation_has_lawyer: has_lawyer,
+      litigation_sql_tag,
+    }
+
+    const session = await supabaseService.createToolSession({
+      userId: req.user.id,
+      toolSlug: 'litigation-cost',
+      inputData: req.body,
+      outputData: costs,
+      qualificationData: qualification_data,
+    })
+
+    ;(async () => {
+      try {
+        const { data: profile } = await supabaseAdmin.from('profiles').select('hubspot_contact_id').eq('id', req.user.id).single()
+        if (!profile?.hubspot_contact_id) return
+        const { count: sessionCount } = await supabaseAdmin.from('tool_sessions').select('id', { count: 'exact' }).eq('user_id', req.user.id)
+        await hubspotService.updateContact(profile.hubspot_contact_id, {
+          safie_tools_last_tool_used: 'litigation-cost',
+          safie_tools_sessions_count: String(sessionCount || 0),
+          litigation_conflict_type: conflict_type,
+          litigation_dispute_value: dispute_value_range,
+          litigation_has_lawyer: String(has_lawyer),
+          litigation_sql_tag: String(litigation_sql_tag),
+        })
+        await supabaseAdmin.from('tool_sessions').update({ hubspot_synced: true }).eq('id', session.id)
+      } catch (err) { console.error('[HubSpot] Sync litigation-cost falhou:', err.message) }
+    })()
+
+    res.status(201).json({ result: costs, qualification_data, session_id: session.id })
+  } catch (err) { next(err) }
+}
+
+// ── Partners Cash ─────────────────────────────────────────────────────────────
+
+// INSS 2024 — tabela progressiva sobre pró-labore
+function calcINSS(prolabore) {
+  const teto = 7786.02
+  const base = Math.min(prolabore, teto)
+  if (base <= 1412) return base * 0.075
+  if (base <= 2666.68) return 1412 * 0.075 + (base - 1412) * 0.09
+  if (base <= 4000.03) return 1412 * 0.075 + (2666.68 - 1412) * 0.09 + (base - 2666.68) * 0.12
+  return 1412 * 0.075 + (2666.68 - 1412) * 0.09 + (4000.03 - 2666.68) * 0.12 + (base - 4000.03) * 0.14
+}
+
+// IR progressivo sobre pró-labore líquido (após INSS)
+function calcIR(base) {
+  if (base <= 2259.20) return 0
+  if (base <= 2826.65) return (base - 2259.20) * 0.075
+  if (base <= 3751.05) return (2826.65 - 2259.20) * 0.075 + (base - 2826.65) * 0.15
+  if (base <= 4664.68) return (2826.65 - 2259.20) * 0.075 + (3751.05 - 2826.65) * 0.15 + (base - 3751.05) * 0.225
+  return (2826.65 - 2259.20) * 0.075 + (3751.05 - 2826.65) * 0.15 + (4664.68 - 3751.05) * 0.225 + (base - 4664.68) * 0.275
+}
+
+const REVENUE_MID_MONTHLY = {
+  ate_10k: 7000, '10k_30k': 20000, '30k_80k': 55000,
+  '80k_200k': 140000, acima_200k: 300000,
+}
+
+const PROLABORE_MID = {
+  salario_minimo: 1412, ate_5k: 3500, '5k_a_10k': 7500,
+  '10k_a_20k': 15000, acima_20k: 25000,
+}
+
+function calcPartnersCash(input) {
+  const { monthly_revenue_range, tax_regime, current_prolabore_range, partners_receiving } = input
+
+  const revenue = REVENUE_MID_MONTHLY[monthly_revenue_range]
+  const current_prolabore = PROLABORE_MID[current_prolabore_range]
+
+  // Cenário atual
+  const inss_current = calcINSS(current_prolabore)
+  const ir_current = calcIR(current_prolabore - inss_current)
+  const net_current = current_prolabore - inss_current - ir_current
+
+  // Cenário otimizado — pró-labore mínimo (1 salário mínimo) + dividendos
+  const min_prolabore = 1412
+  const inss_optimized = calcINSS(min_prolabore)
+  const ir_optimized = calcIR(min_prolabore - inss_optimized)
+  const net_prolabore_optimized = min_prolabore - inss_optimized - ir_optimized
+
+  // Dividendos disponíveis (isentos de IR no Simples e LP)
+  // Estimativa conservadora: 20% da receita disponível para distribuição
+  const available_for_distribution = revenue * 0.2
+  const dividends_per_partner = available_for_distribution / partners_receiving
+  const dividends_tax = tax_regime === 'lucro_real' ? dividends_per_partner * 0 : 0 // dividendos isentos
+
+  const net_optimized = net_prolabore_optimized + dividends_per_partner - dividends_tax
+
+  const monthly_savings = Math.max(0, net_optimized - net_current)
+  const annual_savings = monthly_savings * 12
+
+  return {
+    current: {
+      prolabore: current_prolabore,
+      inss: Math.round(inss_current),
+      ir: Math.round(ir_current),
+      net_income: Math.round(net_current),
+    },
+    optimized: {
+      prolabore: min_prolabore,
+      inss: Math.round(inss_optimized),
+      ir: Math.round(ir_optimized),
+      dividends: Math.round(dividends_per_partner),
+      net_income: Math.round(net_optimized),
+    },
+    monthly_savings: Math.round(monthly_savings),
+    annual_savings: Math.round(annual_savings),
+    tax_regime,
+    dividends_taxable: tax_regime === 'lucro_real',
+  }
+}
+
+export async function calculatePartnersCash(req, res, next) {
+  try {
+    const { monthly_revenue_range, tax_regime, has_accountant } = req.body
+
+    const analysis = calcPartnersCash(req.body)
+
+    const prolabore_sql_tag = !has_accountant
+
+    const qualification_data = {
+      prolabore_monthly_revenue: monthly_revenue_range,
+      prolabore_current_regime: tax_regime,
+      prolabore_has_accountant: has_accountant,
+      prolabore_sql_tag,
+    }
+
+    const session = await supabaseService.createToolSession({
+      userId: req.user.id,
+      toolSlug: 'partners-cash',
+      inputData: req.body,
+      outputData: analysis,
+      qualificationData: qualification_data,
+    })
+
+    ;(async () => {
+      try {
+        const { data: profile } = await supabaseAdmin.from('profiles').select('hubspot_contact_id').eq('id', req.user.id).single()
+        if (!profile?.hubspot_contact_id) return
+        const { count: sessionCount } = await supabaseAdmin.from('tool_sessions').select('id', { count: 'exact' }).eq('user_id', req.user.id)
+        await hubspotService.updateContact(profile.hubspot_contact_id, {
+          safie_tools_last_tool_used: 'partners-cash',
+          safie_tools_sessions_count: String(sessionCount || 0),
+          prolabore_monthly_revenue: monthly_revenue_range,
+          prolabore_current_regime: tax_regime,
+          prolabore_has_accountant: String(has_accountant),
+          prolabore_sql_tag: String(prolabore_sql_tag),
+        })
+        await supabaseAdmin.from('tool_sessions').update({ hubspot_synced: true }).eq('id', session.id)
+      } catch (err) { console.error('[HubSpot] Sync partners-cash falhou:', err.message) }
+    })()
+
+    res.status(201).json({ result: analysis, qualification_data, session_id: session.id })
+  } catch (err) { next(err) }
+}
+
 export async function getSessionsByUser(req, res, next) {
   try {
     const { data, error } = await supabaseAdmin

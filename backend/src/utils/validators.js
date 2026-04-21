@@ -71,6 +71,34 @@ export const laborRiskSchema = z.object({
   has_had_lawsuit: z.boolean(),
 })
 
+// Fast Due Diligence
+export const fastDueDiligenceSchema = z.object({
+  operation_type: z.enum(['captacao', 'ma', 'venda_participacao']),
+  timeline_months: z.enum(['ate_3', '3_a_6', '6_a_12', 'acima_12']),
+  has_legal_advisor: z.boolean(),
+  company_size: z.enum(['micro', 'pequena', 'media', 'grande']),
+  has_shareholders_agreement: z.boolean(),
+})
+
+// Litigation Cost
+export const litigationCostSchema = z.object({
+  conflict_type: z.enum(['trabalhista', 'civel', 'societario', 'fiscal']),
+  dispute_value_range: z.enum(['ate_10k', '10k_50k', '50k_200k', '200k_1M', 'acima_1M']),
+  has_lawyer: z.boolean(),
+  instance: z.enum(['primeira', 'segunda', 'superior']),
+  estimated_duration: z.enum(['ate_1_ano', '1_a_3_anos', 'acima_3_anos']),
+  success_probability: z.number().min(0).max(100),
+})
+
+// Partners Cash
+export const partnersCashSchema = z.object({
+  monthly_revenue_range: z.enum(['ate_10k', '10k_30k', '30k_80k', '80k_200k', 'acima_200k']),
+  tax_regime: z.enum(['simples', 'lucro_presumido', 'lucro_real']),
+  current_prolabore_range: z.enum(['salario_minimo', 'ate_5k', '5k_a_10k', '10k_a_20k', 'acima_20k']),
+  partners_receiving: z.number().min(1).max(10),
+  has_accountant: z.boolean(),
+})
+
 // Middleware de validação reutilizável
 export function validate(schema) {
   return (req, res, next) => {
