@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { supabase } from '../services/supabase'
-import { api } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -92,19 +91,17 @@ export function AuthProvider({ children }) {
       // FIX 3: Se o backend falhar, não relança o erro — o usuário completará
       // o perfil via /completar-perfil (mesmo fluxo do OAuth)
       try {
-        const { data: registerData } = await api.post('/auth/register', {
-          user_id: authData.user.id,
-          full_name,
-          email,
-          phone,
-          company_name,
-          business_segment,
-        })
-        setProfile(registerData.profile)
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .insert({ id: authData.user.id, full_name, email, phone, company_name, business_segment })
+          .select()
+          .single()
+
+        if (profileError) throw profileError
+        setProfile(profile)
         setProfileChecked(true)
-      } catch (backendErr) {
-        console.error('[Auth] Falha ao registrar perfil no backend:', backendErr.message)
-        // Perfil permanece null → needsProfileCompletion = true → OAuthGuard redireciona
+      } catch (profileErr) {
+        console.error('[Auth] Falha ao registrar perfil:', profileErr.message)
         setProfile(null)
         setProfileChecked(true)
       }
@@ -134,19 +131,18 @@ export function AuthProvider({ children }) {
   async function registerProfile(formData) {
     const { full_name, phone, company_name, business_segment } = formData
 
-    const { data } = await api.post('/auth/register', {
-      user_id: user.id,
-      full_name,
-      email: user.email,
-      phone,
-      company_name,
-      business_segment,
-    })
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .insert({ id: user.id, full_name, email: user.email, phone, company_name, business_segment })
+      .select()
+      .single()
 
-    setProfile(data.profile)
+    if (error) throw new Error(error.message)
+
+    setProfile(profile)
     setProfileChecked(true)
 
-    return data.profile
+    return profile
   }
 
   async function signOut() {
