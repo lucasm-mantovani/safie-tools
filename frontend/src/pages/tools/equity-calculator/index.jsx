@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { api } from '../../services/api'
-import Button from '../../components/ui/Button'
-import Slider from '../../components/ui/Slider'
-import { generatePdfFromData } from '../../utils/pdfGenerator'
+import { api } from '../../../services/api'
+import Button from '../../../components/ui/Button'
+import Slider from '../../../components/ui/Slider'
+import { generatePdfFromData } from '../../../utils/pdfGenerator'
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
