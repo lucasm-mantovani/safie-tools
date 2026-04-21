@@ -1,0 +1,102 @@
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useAuth } from './hooks/useAuth'
+import PageWrapper from './components/layout/PageWrapper'
+import Home from './pages/Home'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import CompleteProfile from './pages/CompleteProfile'
+import Dashboard from './pages/Dashboard'
+import EquityCalculator from './pages/tools/equity-calculator'
+
+// Rota protegida — redireciona para /login se não autenticado
+function PrivateRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return <LoadingScreen />
+  return user ? children : <Navigate to="/login" replace />
+}
+
+// Redireciona usuários autenticados para longe das páginas públicas (login/cadastro)
+function PublicOnlyRoute({ children }) {
+  const { user, loading, needsProfileCompletion } = useAuth()
+  if (loading) return <LoadingScreen />
+  if (user && needsProfileCompletion) return <Navigate to="/completar-perfil" replace />
+  if (user) return <Navigate to="/dashboard" replace />
+  return children
+}
+
+// Guard específico para OAuth: redireciona quem tem perfil para fora do /completar-perfil
+function CompleteProfileRoute({ children }) {
+  const { user, loading, needsProfileCompletion } = useAuth()
+  if (loading) return <LoadingScreen />
+  if (!user) return <Navigate to="/login" replace />
+  if (!needsProfileCompletion) return <Navigate to="/dashboard" replace />
+  return children
+}
+
+// Watcher global — redireciona usuários OAuth que acabaram de fazer login sem perfil
+function OAuthGuard() {
+  const { needsProfileCompletion } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (needsProfileCompletion) {
+      navigate('/completar-perfil', { replace: true })
+    }
+  }, [needsProfileCompletion, navigate])
+
+  return null
+}
+
+function LoadingScreen() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-safie-light">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="font-body text-sm text-gray-500">Carregando...</p>
+      </div>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <OAuthGuard />
+      <Routes>
+        {/* Páginas públicas */}
+        <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+
+        {/* Páginas só para não-autenticados */}
+        <Route
+          path="/login"
+          element={<PublicOnlyRoute><PageWrapper><Login /></PageWrapper></PublicOnlyRoute>}
+        />
+        <Route
+          path="/cadastro"
+          element={<PublicOnlyRoute><PageWrapper><Register /></PageWrapper></PublicOnlyRoute>}
+        />
+
+        {/* Completar perfil — só para usuários OAuth sem perfil */}
+        <Route
+          path="/completar-perfil"
+          element={<CompleteProfileRoute><PageWrapper><CompleteProfile /></PageWrapper></CompleteProfileRoute>}
+        />
+
+        {/* Área logada */}
+        <Route
+          path="/dashboard"
+          element={<PrivateRoute><PageWrapper><Dashboard /></PageWrapper></PrivateRoute>}
+        />
+
+        {/* Ferramentas */}
+        <Route
+          path="/ferramentas/equity-calculator"
+          element={<PrivateRoute><PageWrapper><EquityCalculator /></PageWrapper></PrivateRoute>}
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
