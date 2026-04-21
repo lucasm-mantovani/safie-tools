@@ -74,7 +74,7 @@ const FERRAMENTAS = [
   },
   {
     slug: 'pj-risk-calculator',
-    nome: 'Calculadora de Risco de Contratação PJ',
+    nome: 'Labor Risk',
     descricao: 'Avalie o risco trabalhista dos seus contratos PJ antes que o problema chegue na Justiça.',
     Icon: IconShield,
   },

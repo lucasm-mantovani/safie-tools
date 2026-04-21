@@ -290,6 +290,121 @@ export async function calculateTaxBetter(req, res, next) {
   }
 }
 
+// ── Labor Risk — lógica de avaliação ─────────────────────────────────────────
+
+const RISK_FACTORS = ['exclusivity', 'subordination', 'regularity', 'time_control', 'equipment_provided']
+
+function getContractorRisk(contractor) {
+  const score = RISK_FACTORS.filter((f) => contractor[f] === true).length
+  const level = score <= 1 ? 'baixo' : score <= 3 ? 'medio' : 'alto'
+  return { score, level }
+}
+
+const RISK_RECOMMENDATIONS = {
+  alto: 'Revise o contrato imediatamente. Os indicadores apontam vínculo empregatício. Risco real de reclamação trabalhista.',
+  medio: 'Contrato apresenta pontos de atenção. Recomenda-se revisão preventiva das cláusulas e da relação de trabalho.',
+  baixo: 'Relação PJ bem estruturada. Mantenha o monitoramento periódico das condições do contrato.',
+}
+
+export async function calculateLaborRisk(req, res, next) {
+  try {
+    const { contractors, has_had_lawsuit } = req.body
+
+    const evaluated = contractors.map((c) => {
+      const { score, level } = getContractorRisk(c)
+      return {
+        name: c.name,
+        score,
+        risk_level: level,
+        factors: {
+          exclusivity: c.exclusivity,
+          subordination: c.subordination,
+          regularity: c.regularity,
+          time_control: c.time_control,
+          equipment_provided: c.equipment_provided,
+        },
+        recommendation: RISK_RECOMMENDATIONS[level],
+      }
+    })
+
+    const high_risk_count = evaluated.filter((c) => c.risk_level === 'alto').length
+    const medium_risk_count = evaluated.filter((c) => c.risk_level === 'medio').length
+
+    // Exposição geral
+    let overall_exposure
+    if (high_risk_count >= 2 || (high_risk_count >= 1 && has_had_lawsuit)) {
+      overall_exposure = 'alto'
+    } else if (high_risk_count === 1 || medium_risk_count >= 2) {
+      overall_exposure = 'medio'
+    } else {
+      overall_exposure = 'baixo'
+    }
+
+    // SQL tag: 2+ prestadores de alto risco
+    const pj_sql_tag = high_risk_count >= 2
+
+    const qualification_data = {
+      pj_contractors_count: String(contractors.length),
+      pj_high_risk_count: String(high_risk_count),
+      pj_has_had_lawsuit: has_had_lawsuit,
+      pj_sql_tag,
+    }
+
+    const result = {
+      contractors: evaluated,
+      high_risk_count,
+      medium_risk_count,
+      overall_exposure,
+      total: contractors.length,
+    }
+
+    const session = await supabaseService.createToolSession({
+      userId: req.user.id,
+      toolSlug: 'labor-risk',
+      inputData: req.body,
+      outputData: result,
+      qualificationData: qualification_data,
+    })
+
+    ;(async () => {
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('hubspot_contact_id')
+          .eq('id', req.user.id)
+          .single()
+
+        if (!profile?.hubspot_contact_id) return
+
+        const { count: sessionCount } = await supabaseAdmin
+          .from('tool_sessions')
+          .select('id', { count: 'exact' })
+          .eq('user_id', req.user.id)
+
+        await hubspotService.updateContact(profile.hubspot_contact_id, {
+          safie_tools_last_tool_used: 'labor-risk',
+          safie_tools_sessions_count: String(sessionCount || 0),
+          pj_contractors_count: qualification_data.pj_contractors_count,
+          pj_high_risk_count: qualification_data.pj_high_risk_count,
+          pj_has_had_lawsuit: String(has_had_lawsuit),
+          pj_sql_tag: String(pj_sql_tag),
+        })
+
+        await supabaseAdmin
+          .from('tool_sessions')
+          .update({ hubspot_synced: true })
+          .eq('id', session.id)
+      } catch (err) {
+        console.error('[HubSpot] Sync labor-risk falhou:', err.message)
+      }
+    })()
+
+    res.status(201).json({ result, qualification_data, session_id: session.id })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function getSessionsByUser(req, res, next) {
   try {
     const { data, error } = await supabaseAdmin

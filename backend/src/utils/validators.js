@@ -56,6 +56,21 @@ export const taxBetterSchema = z.object({
   last_reviewed: z.enum(['nunca', 'menos_1_ano', '1_a_2_anos', 'mais_2_anos']),
 })
 
+// Labor Risk
+const contractorSchema = z.object({
+  name: z.string().min(1, 'Nome do prestador é obrigatório'),
+  exclusivity: z.boolean(),
+  subordination: z.boolean(),
+  regularity: z.boolean(),
+  time_control: z.boolean(),
+  equipment_provided: z.boolean(),
+})
+
+export const laborRiskSchema = z.object({
+  contractors: z.array(contractorSchema).min(1, 'Informe ao menos 1 prestador').max(10, 'Máximo de 10 prestadores'),
+  has_had_lawsuit: z.boolean(),
+})
+
 // Middleware de validação reutilizável
 export function validate(schema) {
   return (req, res, next) => {

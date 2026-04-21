@@ -77,9 +77,9 @@ const FERRAMENTAS = [
     cor: '#0ea5e9',
   },
   {
-    slug: 'pj-risk-calculator',
-    nome: 'Risco de Contratação PJ',
-    nomeCompleto: 'Calculadora de Risco de Contratação PJ',
+    slug: 'labor-risk',
+    nome: 'Labor Risk',
+    nomeCompleto: 'Labor Risk',
     descricao: 'Avalie o risco trabalhista dos seus contratos com prestadores PJ.',
     tempo: '5–8 min',
     Icon: IconShield,

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 const FERRAMENTAS_FOOTER = [
   { slug: 'equity-calculator', nome: 'Equity Calculator' },
   { slug: 'tax-better', nome: 'Tax Better' },
-  { slug: 'pj-risk-calculator', nome: 'Risco de Contratação PJ' },
+  { slug: 'labor-risk', nome: 'Labor Risk' },
   { slug: 'due-diligence-checklist', nome: 'Due Diligence' },
   { slug: 'litigation-cost-simulator', nome: 'Custo de Litígio' },
   { slug: 'prolabore-calculator', nome: 'Pró-labore Ideal' },
