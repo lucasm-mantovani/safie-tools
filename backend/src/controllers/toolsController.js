@@ -1,6 +1,10 @@
+import { randomUUID } from 'crypto'
 import { supabaseAdmin } from '../config/supabase.js'
 import { supabaseService } from '../services/supabaseService.js'
 import { hubspotService } from '../services/hubspotService.js'
+import { calculate } from '../services/equityCalculatorService.js'
+import { generateNarrative } from '../services/narrativeService.js'
+import { generateAlerts } from '../services/alertService.js'
 
 export async function listTools(req, res, next) {
   try {
@@ -41,58 +45,39 @@ export async function saveSession(req, res, next) {
   }
 }
 
-export async function calculateEquity(req, res, next) {
+export async function createEquitySession(req, res, next) {
   try {
-    const { partners, company_status, has_shareholders_agreement, business_segment } = req.body
+    const { business_briefing, partners, dimension_weights, evaluations, qualification_data: extraQual } = req.body
+    const sortedEvals = [...evaluations].sort((a, b) => a.partner_index - b.partner_index)
+    const calculated = calculate(partners, sortedEvals, dimension_weights)
+    const narrative = generateNarrative(calculated, dimension_weights)
+    const alerts = generateAlerts(calculated, sortedEvals)
 
-    // Soma total de todos os pontos de todos os sócios em todos os critérios
-    const totalScore = partners.reduce((sum, p) => {
-      return sum + p.financial + p.dedication + p.technical + p.commercial + p.network
-    }, 0)
-
-    // Calcula percentual proporcional de cada sócio
-    const result = partners.map((p) => {
-      const partnerScore = p.financial + p.dedication + p.technical + p.commercial + p.network
-      const percentage = totalScore > 0 ? (partnerScore / totalScore) * 100 : 100 / partners.length
-      return {
-        name: p.name,
-        percentage: Math.round(percentage * 100) / 100,
-      }
-    })
-
+    const hasAgreement = business_briefing.has_shareholders_agreement
     const qualification_data = {
-      equity_company_status: company_status,
-      equity_has_shareholders_agreement: has_shareholders_agreement,
-      equity_business_segment: business_segment,
+      equity_company_status: business_briefing.company_status || business_briefing.company_stage || '',
+      equity_has_shareholders_agreement: hasAgreement,
+      equity_business_segment: business_briefing.business_segment,
       equity_partners_count: String(partners.length),
-      equity_sql_tag: has_shareholders_agreement === 'nao',
+      equity_sql_tag: hasAgreement === 'nao' || hasAgreement === 'rascunho_sem_advogado',
+      ...extraQual,
     }
 
-    // Persiste sessão no Supabase
     const session = await supabaseService.createToolSession({
       userId: req.user.id,
       toolSlug: 'equity-calculator',
-      inputData: req.body,
-      outputData: { partners: result },
+      inputData: { business_briefing, partners, dimension_weights, evaluations },
+      outputData: { partners: calculated, narrative, alerts },
       qualificationData: qualification_data,
     })
 
-    // Sincroniza com HubSpot de forma assíncrona (não bloqueia resposta)
     ;(async () => {
       try {
         const { data: profile } = await supabaseAdmin
-          .from('profiles')
-          .select('hubspot_contact_id')
-          .eq('id', req.user.id)
-          .single()
-
+          .from('profiles').select('hubspot_contact_id').eq('id', req.user.id).single()
         if (!profile?.hubspot_contact_id) return
-
         const { count: sessionCount } = await supabaseAdmin
-          .from('tool_sessions')
-          .select('id', { count: 'exact' })
-          .eq('user_id', req.user.id)
-
+          .from('tool_sessions').select('id', { count: 'exact' }).eq('user_id', req.user.id)
         await hubspotService.updateContact(profile.hubspot_contact_id, {
           safie_tools_last_tool_used: 'equity-calculator',
           safie_tools_sessions_count: String(sessionCount || 0),
@@ -102,18 +87,16 @@ export async function calculateEquity(req, res, next) {
           equity_partners_count: qualification_data.equity_partners_count,
           equity_sql_tag: String(qualification_data.equity_sql_tag),
         })
-
-        await supabaseAdmin
-          .from('tool_sessions')
-          .update({ hubspot_synced: true })
-          .eq('id', session.id)
+        await supabaseAdmin.from('tool_sessions').update({ hubspot_synced: true }).eq('id', session.id)
       } catch (err) {
         console.error('[HubSpot] Sync equity-calculator falhou:', err.message)
       }
     })()
 
     res.status(201).json({
-      result: { partners: result },
+      result: { partners: calculated },
+      narrative,
+      alerts,
       qualification_data,
       session_id: session.id,
     })
@@ -762,10 +745,75 @@ export async function getSessionsByUser(req, res, next) {
       .select('*')
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false })
-
     if (error) throw error
     res.json({ sessions: data })
   } catch (err) {
     next(err)
   }
+}
+
+export async function getEquitySession(req, res, next) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('tool_sessions')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('tool_slug', 'equity-calculator')
+      .single()
+    if (error) throw error
+    if (data.user_id !== req.user.id) return res.status(403).json({ message: 'Acesso negado' })
+    res.json({ session: data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getEquitySessionsByUser(req, res, next) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('tool_sessions')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .eq('tool_slug', 'equity-calculator')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    res.json({ sessions: data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function createEquityInvite(req, res, next) {
+  try {
+    const { session_id, invitee_email, invitee_name, partner_index } = req.body
+    const token = randomUUID()
+    const { data, error } = await supabaseAdmin
+      .from('equity_invites')
+      .insert({ session_id, invitee_email, invitee_name, partner_index, token })
+      .select().single()
+    if (error) throw error
+    console.log(`[Invite] Convite para ${invitee_email}: token=${token}`)
+    res.status(201).json({ invite: data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function createEquityShare(req, res, next) {
+  try {
+    const { session_id } = req.body
+    const public_token = randomUUID()
+    const { data, error } = await supabaseAdmin
+      .from('equity_shared_results')
+      .insert({ session_id, public_token })
+      .select().single()
+    if (error) throw error
+    res.status(201).json({ token: public_token })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getEquityBenchmark(req, res) {
+  res.json({ available: false, message: 'Dados de benchmark insuficientes ainda.' })
 }

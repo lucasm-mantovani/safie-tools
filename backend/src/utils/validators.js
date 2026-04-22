@@ -99,6 +99,72 @@ export const partnersCashSchema = z.object({
   has_accountant: z.boolean(),
 })
 
+// Equity Calculator — novo modelo com 4 dimensões
+const capitalEvalSchema = z.object({
+  financial_investment: z.number().min(0),
+  non_financial_assets: z.number().min(0),
+  financial_guarantees: z.number().min(1).max(5),
+})
+
+const workEvalSchema = z.object({
+  weekly_hours: z.number().min(0).max(168),
+  role_type: z.enum(['founder', 'ceo', 'cto', 'coo', 'cmo', 'vp', 'manager', 'specialist', 'other']),
+  years_experience: z.number().min(0).max(50),
+  pre_company_dedication_months: z.number().min(0).max(120),
+  pre_company_dedication_intensity: z.enum(['full', 'partial']),
+})
+
+const knowledgeEvalSchema = z.object({
+  intellectual_property: z.number().min(0).max(5),
+  ip_criticality: z.enum(['critical', 'important', 'helpful']),
+  network_and_market_access: z.number().min(0).max(5),
+  technical_expertise: z.number().min(0).max(5),
+  tech_criticality: z.enum(['critical', 'important', 'helpful']),
+})
+
+const riskEvalSchema = z.object({
+  opportunity_cost: z.enum(['no_sacrifice', 'partial', 'significant', 'full_salary_sacrificed']),
+  vesting_acceptance: z.enum(['yes', 'negotiable', 'no']),
+  exclusivity: z.enum(['exclusive', 'partial', 'non_exclusive']),
+})
+
+const evaluationItemSchema = z.object({
+  partner_index: z.number().int().min(0),
+  capital: capitalEvalSchema,
+  work: workEvalSchema,
+  knowledge: knowledgeEvalSchema,
+  risk: riskEvalSchema,
+})
+
+export const equitySessionSchema = z.object({
+  business_briefing: z.object({
+    company_stage: z.string().optional().nullable(),
+    founders_type: z.string().optional().nullable(),
+    has_shareholders_agreement: z.enum(['sim', 'nao', 'em_elaboracao', 'rascunho_sem_advogado']),
+    business_segment: z.string().min(1),
+    company_status: z.string().optional().nullable(),
+  }),
+  partners: z.array(z.object({
+    name: z.string().min(1),
+    color: z.string().optional(),
+  })).min(2).max(6),
+  dimension_weights: z.object({
+    capital: z.number().min(0).max(100),
+    work: z.number().min(0).max(100),
+    knowledge: z.number().min(0).max(100),
+    risk: z.number().min(0).max(100),
+  }),
+  evaluations: z.array(evaluationItemSchema).min(2).max(6),
+  qualification_data: z.record(z.unknown()).optional(),
+})
+
+export const equityInviteSchema = z.object({
+  session_id: z.string().uuid(),
+  invitee_email: z.string().email(),
+  invitee_name: z.string().min(1),
+  partner_index: z.number().int().min(0),
+})
+
 // Middleware de validação reutilizável
 export function validate(schema) {
   return (req, res, next) => {

@@ -107,3 +107,35 @@ INSERT INTO tools (slug, name_pt, description_pt, is_active, order_index) VALUES
     TRUE, 6
   )
 ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================================
+-- Equity Calculator — tabelas adicionais
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS equity_invites (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id    UUID REFERENCES tool_sessions(id) ON DELETE CASCADE,
+  invitee_email TEXT NOT NULL,
+  invitee_name  TEXT NOT NULL,
+  partner_index INTEGER NOT NULL,
+  token         TEXT UNIQUE NOT NULL,
+  used          BOOLEAN DEFAULT FALSE,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS equity_shared_results (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id   UUID REFERENCES tool_sessions(id) ON DELETE CASCADE,
+  public_token TEXT UNIQUE NOT NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Política INSERT para profiles (caso ainda não exista)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'profiles' AND policyname = 'Usuário pode inserir o próprio perfil'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Usuário pode inserir o próprio perfil" ON profiles FOR INSERT WITH CHECK (auth.uid() = id)';
+  END IF;
+END $$;

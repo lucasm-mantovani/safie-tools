@@ -1,15 +1,29 @@
 import { Router } from 'express'
-import { listTools, saveSession, getSessionsByUser, calculateEquity, calculateTaxBetter, calculateLaborRisk, calculateFastDueDiligence, calculateLitigationCost, calculatePartnersCash } from '../controllers/toolsController.js'
+import {
+  listTools, saveSession, getSessionsByUser,
+  createEquitySession, getEquitySession, getEquitySessionsByUser,
+  createEquityInvite, createEquityShare, getEquityBenchmark,
+  calculateTaxBetter, calculateLaborRisk, calculateFastDueDiligence,
+  calculateLitigationCost, calculatePartnersCash,
+} from '../controllers/toolsController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
-import { validate, equityCalculatorSchema, taxBetterSchema, laborRiskSchema, fastDueDiligenceSchema, litigationCostSchema, partnersCashSchema } from '../utils/validators.js'
+import {
+  validate, equitySessionSchema, equityInviteSchema,
+  taxBetterSchema, laborRiskSchema, fastDueDiligenceSchema,
+  litigationCostSchema, partnersCashSchema,
+} from '../utils/validators.js'
 
 const router = Router()
 
-// GET /api/tools — lista todas as ferramentas ativas
 router.get('/', listTools)
 
-// POST /api/tools/equity-calculator — calcula divisão de participações societárias
-router.post('/equity-calculator', authMiddleware, validate(equityCalculatorSchema), calculateEquity)
+// Equity Calculator
+router.post('/equity-calculator/session', authMiddleware, validate(equitySessionSchema), createEquitySession)
+router.get('/equity-calculator/sessions', authMiddleware, getEquitySessionsByUser)
+router.get('/equity-calculator/session/:id', authMiddleware, getEquitySession)
+router.post('/equity-calculator/invite', authMiddleware, validate(equityInviteSchema), createEquityInvite)
+router.post('/equity-calculator/share', authMiddleware, createEquityShare)
+router.get('/equity-calculator/benchmark', authMiddleware, getEquityBenchmark)
 
 // POST /api/tools/tax-better — diagnóstico de regime tributário
 router.post('/tax-better', authMiddleware, validate(taxBetterSchema), calculateTaxBetter)
