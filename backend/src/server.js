@@ -36,8 +36,10 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date()
 // Tratamento de erros (deve ser o último middleware)
 app.use(errorHandler)
 
-app.listen(PORT, () => {
-  console.log(`🚀 SAFIE Tools API rodando na porta ${PORT}`)
-})
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`🚀 SAFIE Tools API rodando na porta ${PORT}`)
+  })
+}
 
 export default app
