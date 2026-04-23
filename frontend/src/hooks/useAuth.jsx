@@ -82,19 +82,13 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // OAuth Google — redireciona para o Google via URL retornada pelo backend
+  // OAuth Google — frontend inicia o fluxo PKCE diretamente (verifier fica no localStorage do browser)
   async function signInWithGoogle() {
-    try {
-      const { data } = await api.get('/auth/google')
-      window.location.href = data.url
-    } catch {
-      // Fallback para OAuth direto do cliente se backend falhar
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      })
-      if (error) throw error
-    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+    if (error) throw error
   }
 
   // Cria perfil para usuários OAuth que não completaram o cadastro (fluxo legacy)

@@ -26,9 +26,10 @@ export default function AuthCallback() {
         }
       }
 
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data, error: sessionFetchError } = await supabase.auth.getSession()
+      const session = data?.session
 
-      if (!session) {
+      if (sessionFetchError || !session) {
         setError('Sessão não encontrada.')
         setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
         return
