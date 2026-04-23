@@ -4,7 +4,7 @@ const REGIME_LABELS = {
   lucro_real: 'Lucro Real',
 }
 
-const SAFIE_WHATSAPP = '5511999999999'
+const SAFIE_WHATSAPP = '5511910932154'
 
 function buildWhatsAppLink(regime, savings) {
   const regimeLabel = REGIME_LABELS[regime] || regime
