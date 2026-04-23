@@ -29,8 +29,7 @@ function PrivateRoute({ children }) {
 function PublicOnlyRoute({ children }) {
   const { user, loading, needsProfileCompletion } = useAuth()
   if (loading) return <LoadingScreen />
-  const isOAuthUser = user?.app_metadata?.provider !== 'email'
-  if (user && needsProfileCompletion && isOAuthUser) return <Navigate to="/completar-perfil" replace />
+  if (user && needsProfileCompletion) return <Navigate to="/completar-perfil" replace />
   if (user) return <Navigate to="/dashboard" replace />
   return children
 }
@@ -44,14 +43,13 @@ function CompleteProfileRoute({ children }) {
   return children
 }
 
-// Watcher global — redireciona usuários OAuth que acabaram de fazer login sem perfil
-function OAuthGuard() {
+// Watcher global — redireciona qualquer usuário autenticado sem perfil para /completar-perfil
+function ProfileGuard() {
   const { user, needsProfileCompletion } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
-    const isOAuthUser = user?.app_metadata?.provider !== 'email'
-    if (needsProfileCompletion && isOAuthUser) {
+    if (user && needsProfileCompletion) {
       navigate('/completar-perfil', { replace: true })
     }
   }, [needsProfileCompletion, user, navigate])
@@ -73,7 +71,7 @@ function LoadingScreen() {
 export default function App() {
   return (
     <BrowserRouter>
-      <OAuthGuard />
+      <ProfileGuard />
       <Routes>
         {/* Páginas públicas */}
         <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />

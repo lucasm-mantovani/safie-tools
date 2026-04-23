@@ -98,6 +98,9 @@ export function AuthProvider({ children }) {
     })
     if (error) throw error
 
+    // Busca perfil imediatamente para evitar race condition entre navigate e o listener de auth
+    await fetchProfile(data.user.id)
+
     return data
   }
 
@@ -116,16 +119,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // OAuth Google — frontend inicia o fluxo PKCE diretamente (verifier fica no localStorage do browser)
-  async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    if (error) throw error
-  }
-
-  // Cria perfil para usuários OAuth que não completaram o cadastro
+  // Cria perfil para usuários que não completaram o cadastro
   // Usa o backend (service role key) em vez do Supabase direto para evitar bloqueios de RLS e token refresh
   async function registerProfile(formData) {
     const { full_name, phone, company_name, business_segment } = formData
@@ -181,7 +175,6 @@ export function AuthProvider({ children }) {
         needsProfileCompletion,
         signIn,
         signUp,
-        signInWithGoogle,
         signOut,
         registerProfile,
         refreshProfile,
