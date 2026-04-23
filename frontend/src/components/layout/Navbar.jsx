@@ -81,9 +81,16 @@ export default function Navbar() {
                         </p>
                         <p className="font-body text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
                       </div>
+                      <Link
+                        to="/perfil"
+                        onClick={() => setMenuOpen(false)}
+                        className="block px-4 py-2.5 font-cta text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors"
+                      >
+                        Meu perfil
+                      </Link>
                       <button
                         onClick={() => { setMenuOpen(false); handleSignOut() }}
-                        className="w-full text-left px-4 py-2.5 font-cta text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors"
+                        className="w-full text-left px-4 py-2.5 font-cta text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors border-t border-gray-50"
                       >
                         Sair da conta
                       </button>
@@ -137,6 +144,13 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(false)}
               >
                 Dashboard
+              </Link>
+              <Link
+                to="/perfil"
+                className="font-cta text-sm text-gray-600 hover:text-primary transition-colors"
+                onClick={() => setMenuOpen(false)}
+              >
+                Meu perfil
               </Link>
               <button
                 onClick={() => { setMenuOpen(false); handleSignOut() }}
