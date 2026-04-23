@@ -14,11 +14,26 @@ export default function AuthCallback() {
     const accessToken = searchParams.get('access_token')
     const refreshToken = searchParams.get('refresh_token')
 
-    // Legacy: tokens passados diretamente na URL (email confirmation e recovery via backend)
+    let handled = false
+
+    async function redirect(session, isRecovery) {
+      if (handled) return
+      handled = true
+
+      if (isRecovery) {
+        navigate(`/reset-password?token=${session?.access_token}`, { replace: true })
+        return
+      }
+      await refreshProfile?.()
+      navigate('/dashboard', { replace: true })
+    }
+
+    // Legacy: tokens passados diretamente na URL (email confirmation via backend)
     if (accessToken && refreshToken) {
       supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ error: sessionError }) => {
-          if (sessionError) {
+          if (sessionError && !handled) {
+            handled = true
             setError('Falha ao estabelecer sessão. Tente novamente.')
             setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
           }
@@ -26,30 +41,37 @@ export default function AuthCallback() {
         })
     }
 
-    // PKCE: aguarda o Supabase completar a troca do code=... antes de redirecionar
-    let timeoutId
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Listener para eventos de auth (OAuth, PKCE code exchange)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        clearTimeout(timeoutId)
         subscription.unsubscribe()
-        if (type === 'recovery') {
-          navigate(`/reset-password?token=${session.access_token}`, { replace: true })
-          return
-        }
-        await refreshProfile?.()
-        navigate('/dashboard', { replace: true })
+        clearTimeout(timeoutId)
+        redirect(session, type === 'recovery')
       }
       if (event === 'PASSWORD_RECOVERY') {
-        clearTimeout(timeoutId)
         subscription.unsubscribe()
-        navigate(`/reset-password?token=${session?.access_token}`, { replace: true })
+        clearTimeout(timeoutId)
+        redirect(session, true)
       }
     })
 
-    timeoutId = setTimeout(() => {
-      subscription.unsubscribe()
-      setError('Tempo esgotado. Tente novamente.')
-      setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
+    // Fallback: event pode ter disparado antes do listener ser registrado (race condition PKCE)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && !handled) {
+        subscription.unsubscribe()
+        clearTimeout(timeoutId)
+        redirect(session, type === 'recovery')
+      }
+    })
+
+    // Timeout de segurança
+    const timeoutId = setTimeout(() => {
+      if (!handled) {
+        handled = true
+        subscription.unsubscribe()
+        setError('Tempo esgotado. Tente novamente.')
+        setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
+      }
     }, 20000)
 
     return () => {
