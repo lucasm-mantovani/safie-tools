@@ -1,21 +1,49 @@
-// TODO: adicionar edição inline na tabela e highlight de max/min
-import { useEquity } from './EquityContext'
+import { useEquity, DEFAULT_EVAL } from './EquityContext'
 import Button from '../../../components/ui/Button'
+
+const ROLE_LABELS = {
+  founder: 'Fundador', ceo: 'CEO', cto: 'CTO', coo: 'COO',
+  cmo: 'CMO', vp: 'VP', manager: 'Gerente', specialist: 'Especialista', other: 'Outro',
+}
+
+const OPPORTUNITY_COST_LABELS = {
+  no_sacrifice: 'Sem sacrifício', partial: 'Parcial (até 50%)',
+  significant: 'Significativo (>50%)', full_salary_sacrificed: 'Total',
+}
+
+const VESTING_LABELS = {
+  yes: 'Sim — 4 anos', negotiable: 'Negociável', no: 'Não aceita',
+}
+
+const EXCLUSIVITY_LABELS = {
+  exclusive: 'Exclusivo', partial: 'Parcial', non_exclusive: 'Não exclusivo',
+}
+
+const CRITICALITY_LABELS = {
+  critical: 'Crítico', important: 'Importante', helpful: 'Útil',
+}
 
 const CRITERIA_LABELS = {
   'capital.financial_investment':       { label: 'Aporte financeiro (R$)', fmt: v => `R$ ${Number(v).toLocaleString('pt-BR')}` },
   'capital.non_financial_assets':       { label: 'Bens não financeiros (0–5)', fmt: v => v },
   'capital.financial_guarantees':       { label: 'Garantias financeiras (1–5)', fmt: v => v },
   'work.weekly_hours':                  { label: 'Horas semanais', fmt: v => `${v}h` },
-  'work.role_type':                     { label: 'Papel', fmt: v => v },
+  'work.role_type':                     { label: 'Papel', fmt: v => ROLE_LABELS[v] || v },
   'work.years_experience':              { label: 'Anos de experiência', fmt: v => `${v} anos` },
   'work.pre_company_dedication_months': { label: 'Meses pré-empresa', fmt: v => `${v} meses` },
   'knowledge.intellectual_property':    { label: 'Propriedade intelectual (0–5)', fmt: v => v },
+  'knowledge.ip_criticality':           { label: 'Criticidade da PI', fmt: v => CRITICALITY_LABELS[v] || v },
   'knowledge.network_and_market_access':{ label: 'Rede e mercado (0–5)', fmt: v => v },
   'knowledge.technical_expertise':      { label: 'Expertise técnica (0–5)', fmt: v => v },
-  'risk.opportunity_cost':              { label: 'Custo de oportunidade', fmt: v => v },
-  'risk.vesting_acceptance':            { label: 'Aceita vesting?', fmt: v => v },
-  'risk.exclusivity':                   { label: 'Exclusividade', fmt: v => v },
+  'knowledge.tech_criticality':         { label: 'Criticidade da expertise', fmt: v => CRITICALITY_LABELS[v] || v },
+  'risk.opportunity_cost':              { label: 'Custo de oportunidade', fmt: v => OPPORTUNITY_COST_LABELS[v] || v },
+  'risk.vesting_acceptance':            { label: 'Aceita vesting?', fmt: v => VESTING_LABELS[v] || v },
+  'risk.exclusivity':                   { label: 'Exclusividade', fmt: v => EXCLUSIVITY_LABELS[v] || v },
+}
+
+function isDefaultEval(evaluation) {
+  if (!evaluation) return true
+  return JSON.stringify(evaluation) === JSON.stringify(DEFAULT_EVAL)
 }
 
 export default function StepComparativeReview() {
@@ -32,11 +60,17 @@ export default function StepComparativeReview() {
           <thead>
             <tr>
               <th className="text-left font-cta text-xs text-gray-400 uppercase tracking-wide pb-3 pr-4">Critério</th>
-              {partners.map((p, i) => (
-                <th key={p.id} className="text-center font-cta text-xs font-semibold pb-3 px-2" style={{ color: p.color }}>
-                  {p.name || `Sócio ${i + 1}`}
-                </th>
-              ))}
+              {partners.map((p, i) => {
+                const hasDefaults = isDefaultEval(evaluations[i])
+                return (
+                  <th key={p.id} className="text-center font-cta text-xs font-semibold pb-3 px-2" style={{ color: p.color }}>
+                    <span>{p.name || `Sócio ${i + 1}`}</span>
+                    {hasDefaults && (
+                      <span className="ml-1" title="Sócio com valores padrão — não foi avaliado">⚠️</span>
+                    )}
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -75,6 +109,11 @@ export default function StepComparativeReview() {
       >
         Ver resultado →
       </Button>
+
+      <p className="font-body text-xs text-gray-400 text-center mt-3">
+        Antes de exibir o resultado, faremos 4 perguntas rápidas sobre sua empresa (menos de 1 minuto).
+        A última pergunta é opcional — recusar contato não impede o acesso ao resultado.
+      </p>
     </div>
   )
 }

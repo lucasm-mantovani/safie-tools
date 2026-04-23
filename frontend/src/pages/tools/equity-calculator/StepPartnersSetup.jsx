@@ -1,10 +1,13 @@
-// TODO: adicionar drag-and-drop com @dnd-kit quando disponível
+import { useState } from 'react'
 import { useEquity, PARTNER_COLORS } from './EquityContext'
 import Button from '../../../components/ui/Button'
 
+const NAME_REGEX = /[a-zA-ZÀ-ú]/
+
 function Avatar({ name, color }) {
-  const initials = name
-    ? name.split(' ').slice(0, 2).map(w => w[0].toUpperCase()).join('')
+  const trimmed = (name || '').trim()
+  const initials = trimmed
+    ? trimmed.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w[0].toUpperCase()).join('')
     : '?'
   return (
     <div
@@ -18,8 +21,19 @@ function Avatar({ name, color }) {
 
 export default function StepPartnersSetup() {
   const { partners, addPartner, removePartner, updatePartnerName, goToStep } = useEquity()
+  const [nameErrors, setNameErrors] = useState({})
 
-  const allNamed = partners.every(p => p.name.trim().length >= 2)
+  function validateName(id, name) {
+    if (name.trim().length < 2 || !NAME_REGEX.test(name)) {
+      setNameErrors(e => ({ ...e, [id]: 'Por favor, insira um nome válido.' }))
+    } else {
+      setNameErrors(e => { const next = { ...e }; delete next[id]; return next })
+    }
+  }
+
+  const allNamed = partners.every(p => p.name.trim().length >= 2 && NAME_REGEX.test(p.name))
+  const hasErrors = Object.keys(nameErrors).length > 0
+  const canContinue = allNamed && !hasErrors
 
   return (
     <div>
@@ -41,24 +55,37 @@ export default function StepPartnersSetup() {
 
         <div className="flex flex-col gap-3">
           {partners.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3">
-              <Avatar name={p.name} color={p.color} />
-              <input
-                type="text"
-                value={p.name}
-                onChange={e => updatePartnerName(p.id, e.target.value)}
-                placeholder={`Sócio ${i + 1} — nome completo`}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-              />
-              {partners.length > 2 && (
-                <button
-                  onClick={() => removePartner(p.id)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+            <div key={p.id}>
+              <div className="flex items-center gap-3">
+                <Avatar name={p.name} color={p.color} />
+                <input
+                  type="text"
+                  value={p.name}
+                  onChange={e => {
+                    updatePartnerName(p.id, e.target.value)
+                    if (nameErrors[p.id]) validateName(p.id, e.target.value)
+                  }}
+                  onBlur={e => validateName(p.id, e.target.value)}
+                  placeholder={`Sócio ${i + 1} — nome completo`}
+                  className={`flex-1 px-4 py-2.5 rounded-lg border font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors ${
+                    nameErrors[p.id] ? 'border-red-300 focus:border-red-400' : 'border-gray-200 focus:border-primary'
+                  }`}
+                />
+                {partners.length > 2 && (
+                  <button
+                    onClick={() => removePartner(p.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {nameErrors[p.id] && (
+                <p className="font-body text-xs text-red-500 mt-1 ml-13 pl-13" style={{ paddingLeft: '3.25rem' }}>
+                  {nameErrors[p.id]}
+                </p>
               )}
             </div>
           ))}
@@ -73,13 +100,13 @@ export default function StepPartnersSetup() {
         variant="primary"
         size="md"
         onClick={() => goToStep('DIMENSION_WEIGHTS')}
-        disabled={!allNamed}
+        disabled={!canContinue}
         className="w-full"
       >
         Continuar para pesos →
       </Button>
 
-      {!allNamed && (
+      {!canContinue && (
         <p className="font-body text-xs text-gray-400 text-center mt-3">
           Preencha o nome de todos os sócios para continuar.
         </p>

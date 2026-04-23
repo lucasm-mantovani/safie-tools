@@ -78,11 +78,21 @@ export default function QualificationModal() {
         qualification_data: answers,
       }
 
-      const { data } = await api.post('/tools/equity-calculator/session', payload)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+      )
+      const { data } = await Promise.race([
+        api.post('/tools/equity-calculator/session', payload),
+        timeout,
+      ])
       setQualificationData(answers)
       setResults(data.result, data.session_id)
     } catch (err) {
-      setError(err.response?.data?.message || err.message)
+      if (err.message === 'TIMEOUT') {
+        setError('Não foi possível carregar. Verifique sua conexão e tente novamente.')
+      } else {
+        setError(err.response?.data?.message || err.message)
+      }
       setSubmitting(false)
     }
   }

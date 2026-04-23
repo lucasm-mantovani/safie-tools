@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { EquityProvider, useEquity } from './EquityContext'
+import EquityErrorBoundary from './EquityErrorBoundary'
 import StepBriefing from './StepBriefing'
 import StepPartnersSetup from './StepPartnersSetup'
 import StepDimensionWeights from './StepDimensionWeights'
@@ -101,8 +102,10 @@ function EquityFlow() {
 
 export default function EquityCalculator() {
   return (
-    <EquityProvider>
-      <EquityFlow />
-    </EquityProvider>
+    <EquityErrorBoundary>
+      <EquityProvider>
+        <EquityFlow />
+      </EquityProvider>
+    </EquityErrorBoundary>
   )
 }

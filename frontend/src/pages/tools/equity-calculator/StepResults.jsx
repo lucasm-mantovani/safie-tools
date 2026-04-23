@@ -34,9 +34,27 @@ function AlertCard({ alert }) {
 }
 
 export default function StepResults({ onReset }) {
-  const { results, partners } = useEquity()
+  const { results, partners, goToStep } = useEquity()
 
-  if (!results) return null
+  if (!results || !results.result?.partners?.length) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h2 className="font-heading text-lg font-bold text-bg-dark mb-2">Não foi possível carregar seu resultado</h2>
+        <p className="font-body text-sm text-gray-500 mb-6">Por favor, volte e tente novamente.</p>
+        <button
+          onClick={() => goToStep('COMPARATIVE_REVIEW')}
+          className="font-cta text-sm font-semibold text-primary hover:text-secondary transition-colors"
+        >
+          ← Voltar para revisão
+        </button>
+      </div>
+    )
+  }
 
   const { result, narrative, alerts } = results
   const chartData = result.partners.map((p, i) => ({

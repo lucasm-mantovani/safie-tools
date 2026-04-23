@@ -135,9 +135,16 @@ export function EquityProvider({ children }) {
       const saved = localStorage.getItem(LS_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (parsed.currentStep && parsed.currentStep !== 'RESULTS') return parsed
+        if (
+          parsed.currentStep &&
+          parsed.currentStep !== 'RESULTS' &&
+          Array.isArray(parsed.partners) &&
+          parsed.partners.length >= 2
+        ) return parsed
       }
-    } catch {}
+    } catch {
+      localStorage.removeItem(LS_KEY)
+    }
     return makeInitialState()
   })
 
@@ -194,4 +201,4 @@ export function useEquity() {
   return ctx
 }
 
-export { DEFAULT_WEIGHTS, PARTNER_COLORS }
+export { DEFAULT_WEIGHTS, PARTNER_COLORS, DEFAULT_EVAL }

@@ -191,8 +191,14 @@ export default function StepBriefing() {
         disabled={!allAnswered}
         className="w-full"
       >
-        Continuar para sócios →
+          Continuar para sócios →
       </Button>
+
+      {!allAnswered && (
+        <p className="font-body text-xs text-gray-400 text-center mt-3">
+          Selecione uma opção para continuar.
+        </p>
+      )}
     </div>
   )
 }
