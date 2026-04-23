@@ -32,13 +32,13 @@ export default function GrowthScenarioChart({ growthScenarios }) {
   const current = hoverIdx !== null ? growthScenarios[hoverIdx] : null
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-4">
       <h3 className="font-heading text-base font-bold text-bg-dark mb-1">Projeção por crescimento de receita</h3>
       <p className="font-body text-xs text-gray-400 mb-5">
         CTET % — Carga Tributária Efetiva Total como % da receita
       </p>
 
-      <div className="h-56 mb-5">
+      <div className="h-44 sm:h-56 mb-5">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}

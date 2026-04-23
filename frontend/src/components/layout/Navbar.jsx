@@ -27,7 +27,7 @@ export default function Navbar() {
 
   return (
     <nav className="w-full bg-white border-b border-gray-100 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
@@ -121,7 +121,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-6 py-4 flex flex-col gap-4">
+        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-4">
           {user ? (
             <>
               <div className="flex items-center gap-3 pb-3 border-b border-gray-100">

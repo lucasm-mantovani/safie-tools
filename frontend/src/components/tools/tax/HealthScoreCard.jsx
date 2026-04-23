@@ -40,10 +40,10 @@ export default function HealthScoreCard({ healthScore }) {
   const colors = getColorConfig(score, max)
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-4">
       <h3 className="font-heading text-base font-bold text-bg-dark mb-4">Health Score Tributário</h3>
 
-      <div className="flex items-center gap-5 mb-5">
+      <div className="flex items-center gap-3 sm:gap-5 mb-5">
         <CircularProgress score={score} max={max} grade={grade} colors={colors} />
         <div>
           <div className={`inline-flex px-3 py-1 rounded-full font-cta text-xs font-semibold border ${colors.bg} ${colors.border} ${colors.text} mb-2`}>
@@ -62,7 +62,7 @@ export default function HealthScoreCard({ healthScore }) {
             const cpct = c.max > 0 ? (c.score / c.max) * 100 : 0
             return (
               <div key={c.key} className="flex items-center gap-3">
-                <p className="font-body text-xs text-gray-600 w-36 shrink-0 leading-tight">{c.label}</p>
+                <p className="font-body text-xs text-gray-600 w-28 sm:w-36 shrink-0 leading-tight">{c.label}</p>
                 <div className="flex-1 bg-gray-100 rounded-full h-1.5">
                   <div
                     className="h-1.5 rounded-full transition-all duration-500"

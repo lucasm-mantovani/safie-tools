@@ -18,15 +18,15 @@ export default function Modal({ isOpen, onClose, title, children }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative"
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-8 relative"
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <h2 className="font-heading text-xl font-bold text-bg-dark mb-6">{title}</h2>
+          <h2 className="font-heading text-lg sm:text-xl font-bold text-bg-dark mb-6">{title}</h2>
         )}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-gray-600 transition-colors"
           aria-label="Fechar modal"
         >
           ✕

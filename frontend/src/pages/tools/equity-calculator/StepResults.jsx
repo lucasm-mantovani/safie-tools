@@ -55,10 +55,10 @@ export default function StepResults({ onReset }) {
       )}
 
       {/* Gráfico + tabela */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-6">
         <h2 className="font-heading text-lg font-bold text-bg-dark mb-6">Participações sugeridas</h2>
 
-        <div className="h-64 mb-6">
+        <div className="h-48 sm:h-64 mb-6">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie

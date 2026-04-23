@@ -47,10 +47,10 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-6 py-12">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 py-10 sm:py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="font-heading text-3xl font-bold text-bg-dark">Entrar na sua conta</h1>
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-bg-dark">Entrar na sua conta</h1>
           <p className="font-body text-sm text-gray-500 mt-2">
             Não tem conta?{' '}
             <Link to="/cadastro" className="text-primary font-semibold hover:underline">

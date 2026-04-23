@@ -165,7 +165,7 @@ export default function Dashboard() {
 
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <p className="font-body text-sm text-gray-400 mb-1">{greeting},</p>
@@ -186,7 +186,7 @@ export default function Dashboard() {
             </div>
 
             {/* Mini-stats */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <div className="text-center hidden sm:block">
                 <p className="font-heading text-2xl font-bold text-bg-dark">6</p>
                 <p className="font-body text-xs text-gray-400 mt-0.5">ferramentas disponíveis</p>
@@ -202,7 +202,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── CONTEÚDO ───────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
         {/* Banner de perfil incompleto */}
         {!hasCompany && (

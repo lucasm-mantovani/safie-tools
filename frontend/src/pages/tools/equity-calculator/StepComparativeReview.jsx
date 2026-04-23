@@ -25,10 +25,10 @@ export default function StepComparativeReview() {
 
   return (
     <div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6 overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-6 overflow-x-auto">
         <h2 className="font-heading text-lg font-bold text-bg-dark mb-5">Revisão comparativa</h2>
 
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[480px]">
           <thead>
             <tr>
               <th className="text-left font-cta text-xs text-gray-400 uppercase tracking-wide pb-3 pr-4">Critério</th>

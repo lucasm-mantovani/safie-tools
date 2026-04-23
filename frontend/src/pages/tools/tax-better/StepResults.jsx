@@ -110,14 +110,14 @@ export default function StepResults({ onReset }) {
         <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">
           Ferramenta 2 de 6
         </p>
-        <h1 className="font-heading text-3xl font-bold text-bg-dark mb-2">Seu diagnóstico tributário</h1>
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold text-bg-dark mb-2">Seu diagnóstico tributário</h1>
         <p className="font-body text-sm text-gray-500">
           Estimativa baseada nos dados informados — valide com seu contador antes de migrar.
         </p>
       </div>
 
       {/* Botões de PDF */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <button
           onClick={handleUserPDF}
           className="flex-1 flex items-center justify-center gap-2 font-cta text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors px-4 py-2.5 rounded-xl"

@@ -9,9 +9,9 @@ export default function VerdictCard({ results }) {
   const isAlreadyBest = ranking?.[0]?.regime === recommended_regime
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-4">
       <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">Regime Recomendado</p>
-      <h2 className="font-heading text-2xl font-bold text-bg-dark mb-4">
+      <h2 className="font-heading text-xl sm:text-2xl font-bold text-bg-dark mb-4">
         {REGIME_LABELS[recommended_regime] || recommended_regime}
       </h2>
 

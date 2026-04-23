@@ -53,7 +53,7 @@ function EquityFlow() {
 
   return (
     <div className="min-h-screen bg-safie-light">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
 
         {/* Header */}
         {!isResults && (
@@ -70,7 +70,7 @@ function EquityFlow() {
             <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">
               Ferramenta 1 de 6
             </p>
-            <h1 className="font-heading text-3xl font-bold text-bg-dark mb-2">
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-bg-dark mb-2">
               Calculadora de Participações
             </h1>
             <p className="font-body text-sm text-gray-500">
