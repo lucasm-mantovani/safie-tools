@@ -80,15 +80,16 @@ export default function QualificationModal() {
     setError(null)
     try {
       const { partners, partners_count } = partnerRemuneration
+      const rdInvestment = parseBRL(costStructure.rd_investment)
       const payload = {
         company_profile: companyProfile,
         revenue_data: {
           monthly_revenue: parseBRL(revenueData.monthly_revenue),
           services_revenue_pct: revenueData.services_revenue_pct,
           products_revenue_pct: revenueData.products_revenue_pct,
-          has_seasonal_revenue: revenueData.has_seasonal_revenue,
-          has_export_revenue: revenueData.has_export_revenue,
-          has_financial_revenue: revenueData.has_financial_revenue,
+          has_seasonal_revenue: revenueData.has_seasonal_revenue ?? false,
+          has_export_revenue: revenueData.has_export_revenue ?? false,
+          has_financial_revenue: revenueData.has_financial_revenue ?? false,
         },
         cost_structure: {
           payroll: parseBRL(costStructure.payroll),
@@ -96,7 +97,7 @@ export default function QualificationModal() {
           rent: parseBRL(costStructure.rent),
           equipment_depreciation: parseBRL(costStructure.equipment_depreciation),
           other_documented_costs: parseBRL(costStructure.other_documented_costs),
-          rd_investment: parseBRL(costStructure.rd_investment),
+          rd_investment: rdInvestment,
         },
         partner_remuneration: {
           partners_count,
@@ -108,10 +109,13 @@ export default function QualificationModal() {
           })),
         },
         supplementary_data: {
-          ...supplementaryData,
+          last_regime_review: supplementaryData.last_regime_review || undefined,
+          has_rd_investment: rdInvestment > 0,
+          has_export_revenue: revenueData.has_export_revenue ?? false,
+          has_real_estate: supplementaryData.has_real_estate ?? false,
           iss_rate: supplementaryData.iss_rate
-            ? parseFloat(String(supplementaryData.iss_rate).replace(',', '.'))
-            : null,
+            ? parseFloat(String(supplementaryData.iss_rate).replace(',', '.')) / 100
+            : undefined,
         },
         qualification_data: answers,
       }

@@ -34,7 +34,7 @@ function YesNoField({ label, value, onChange }) {
 
 export default function StepSupplementary() {
   const { supplementaryData, updateSupplementary, goToStep } = useTax()
-  const { last_regime_review, has_rd_investment, has_export_revenue, has_real_estate, iss_rate } = supplementaryData
+  const { last_regime_review, has_real_estate, iss_rate } = supplementaryData
   const [issError, setIssError] = useState(null)
 
   const canAdvance = last_regime_review !== null && issError === null
@@ -55,16 +55,6 @@ export default function StepSupplementary() {
   return (
     <div>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <YesNoField
-          label="Investe em pesquisa e desenvolvimento (P&D)?"
-          value={has_rd_investment}
-          onChange={v => updateSupplementary('has_rd_investment', v)}
-        />
-        <YesNoField
-          label="Tem receita de exportação?"
-          value={has_export_revenue}
-          onChange={v => updateSupplementary('has_export_revenue', v)}
-        />
         <YesNoField
           label="Possui imóvel em nome da empresa?"
           value={has_real_estate}
@@ -96,7 +86,7 @@ export default function StepSupplementary() {
           <label className="font-body text-sm font-medium text-gray-700 block mb-0.5">
             Alíquota do ISS no município (%) — opcional
           </label>
-          <p className="font-body text-xs text-gray-400 mb-2">Se não souber, usaremos 2% como padrão</p>
+          <p className="font-body text-xs text-gray-400 mb-2">Se não souber, usaremos 5% como padrão</p>
           <input
             type="text"
             inputMode="decimal"

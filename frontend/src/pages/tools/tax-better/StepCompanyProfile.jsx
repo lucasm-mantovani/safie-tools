@@ -48,6 +48,12 @@ export default function StepCompanyProfile() {
   const activeQ = QUESTIONS[currentIdx]
   const allRequiredDone = QUESTIONS.filter(q => !q.optional).every(q => companyProfile[q.key])
 
+  const answeredRequired = QUESTIONS.filter(q => !q.optional && companyProfile[q.key])
+  function handleBackQuestion() {
+    const last = answeredRequired[answeredRequired.length - 1]
+    if (last) updateCompanyProfile(last.key, null)
+  }
+
   function handleCardClick(key, value) {
     setPendingAnswer({ key, value })
     setTimeout(() => {
@@ -147,6 +153,15 @@ export default function StepCompanyProfile() {
       >
         Continuar →
       </Button>
+
+      {answeredRequired.length > 0 && (
+        <button
+          onClick={handleBackQuestion}
+          className="w-full mt-3 font-cta text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+        >
+          ← Pergunta anterior
+        </button>
+      )}
     </div>
   )
 }
