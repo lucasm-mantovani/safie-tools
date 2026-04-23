@@ -69,7 +69,14 @@ export async function registerUser(req, res, next) {
 
     const userId = authData.user.id
 
-    await supabaseAdmin.from('profiles').insert({ id: userId, full_name, email, phone, company_name, business_segment })
+    const { error: insertError } = await supabaseAdmin
+      .from('profiles')
+      .insert({ id: userId, full_name, email, phone, company_name, business_segment })
+
+    if (insertError) {
+      logger.error('[Register] Falha ao criar perfil', { userId, message: insertError.message })
+      return res.status(500).json({ error: 'server_error', message: 'Erro ao criar conta. Por favor, tente novamente.' })
+    }
 
     syncHubspotAsync(userId, { full_name, email, phone, company_name, business_segment })
 
@@ -102,6 +109,25 @@ export async function loginUser(req, res, next) {
     }
 
     await logLoginAttempt(email, ip, userAgent, true)
+
+    // Recovery: cria perfil se não existir (caso registro falhou anteriormente)
+    const { data: existingProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('id', data.user.id)
+      .single()
+
+    if (!existingProfile) {
+      const meta = data.user.user_metadata || {}
+      await supabaseAdmin.from('profiles').insert({
+        id: data.user.id,
+        full_name: meta.full_name || data.user.email.split('@')[0],
+        email: data.user.email,
+        phone: meta.phone || null,
+        company_name: meta.company_name || null,
+        business_segment: meta.business_segment || null,
+      }).catch(e => logger.error('[Login] Falha no recovery do perfil', { userId: data.user.id, error: e.message }))
+    }
 
     // Atualiza last_login_at e incrementa login_count
     await supabaseAdmin
