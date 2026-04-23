@@ -11,7 +11,9 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
     "build": "npm run build --workspace=frontend",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "audit": "npm audit --audit-level=high --workspace=backend && npm audit --audit-level=high --workspace=frontend",
+    "audit:fix": "npm audit fix --workspace=backend && npm audit fix --workspace=frontend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

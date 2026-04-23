@@ -7,6 +7,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import CompleteProfile from './pages/CompleteProfile'
 import Dashboard from './pages/Dashboard'
+import Profile from './pages/Profile'
+import AuthCallback from './pages/AuthCallback'
 import EquityCalculator from './pages/tools/equity-calculator'
 import TaxBetter from './pages/tools/tax-better'
 import LaborRisk from './pages/tools/labor-risk'
@@ -88,10 +90,17 @@ export default function App() {
           element={<CompleteProfileRoute><PageWrapper><CompleteProfile /></PageWrapper></CompleteProfileRoute>}
         />
 
+        {/* Callback de OAuth e confirmação de e-mail */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
         {/* Área logada */}
         <Route
           path="/dashboard"
           element={<PrivateRoute><PageWrapper><Dashboard /></PageWrapper></PrivateRoute>}
+        />
+        <Route
+          path="/perfil"
+          element={<PrivateRoute><PageWrapper><Profile /></PageWrapper></PrivateRoute>}
         />
 
         {/* Ferramentas */}

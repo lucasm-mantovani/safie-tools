@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { supabase } from '../services/supabase'
+import { api } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -9,27 +10,18 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [profileChecked, setProfileChecked] = useState(false)
 
-  // FIX 1: Flag que bloqueia o fetchProfile durante o fluxo de signUp()
-  // Sem isso, onAuthStateChange(SIGNED_IN) dispara antes do api.post('/auth/register'),
-  // encontra perfil inexistente e redireciona incorretamente para /completar-perfil
+  // Bloqueia fetchProfile durante fluxo de signUp para evitar redirect prematuro
   const isRegistering = useRef(false)
 
   const needsProfileCompletion = !loading && profileChecked && user !== null && profile === null
 
   useEffect(() => {
-    // FIX 5: Remove a função init() que causava duplo fetchProfile no carregamento
-    // onAuthStateChange dispara INITIAL_SESSION automaticamente no mount,
-    // tornando getSession() redundante e dobrando as chamadas ao Supabase
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // TOKEN_REFRESHED não precisa re-buscar o perfil
       if (event === 'TOKEN_REFRESHED') return
 
       setUser(session?.user ?? null)
 
       if (session?.user) {
-        // FIX 1: Só busca o perfil se não estiver no meio de um signUp()
-        // Durante signUp(), o setProfile() é chamado diretamente após o backend responder
         if (!isRegistering.current) {
           await fetchProfile(session.user.id)
         }
@@ -43,9 +35,6 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // FIX 6: Corrige o comentário — Supabase v2 não lança exceção com .single()
-  // quando não encontra registro: retorna { data: null, error: { code: 'PGRST116' } }
-  // O catch aqui trata erros reais (rede, permissão, etc.)
   async function fetchProfile(userId) {
     try {
       const { data, error } = await supabase
@@ -64,74 +53,55 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Login via backend (registra tentativas, rate limit por e-mail)
   async function signIn(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data } = await api.post('/auth/login', { email, password })
+
+    // Seta sessão no cliente Supabase com os tokens retornados pelo backend
+    const { error } = await supabase.auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    })
     if (error) throw error
+
     return data
   }
 
+  // Registro via backend (valida, cria usuário, cria perfil, envia e-mail de confirmação)
   async function signUp(formData) {
     const { full_name, email, password, phone, company_name, business_segment } = formData
 
-    // FIX 1: Sinaliza que estamos no fluxo de registro para suprimir o fetchProfile
-    // disparado pelo onAuthStateChange(SIGNED_IN) que ocorre durante o signUp
     isRegistering.current = true
-
     try {
-      const { data: authData, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name, phone, company_name, business_segment },
-        },
-      })
-      // Erros do Supabase Auth são relançados (ex: e-mail já cadastrado, senha fraca)
-      if (error) throw error
-
-      // FIX 3: Se o backend falhar, não relança o erro — o usuário completará
-      // o perfil via /completar-perfil (mesmo fluxo do OAuth)
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .insert({ id: authData.user.id, full_name, email, phone, company_name, business_segment })
-          .select()
-          .single()
-
-        if (profileError) throw profileError
-        setProfile(profile)
-        setProfileChecked(true)
-      } catch (profileErr) {
-        console.error('[Auth] Falha ao registrar perfil:', profileErr.message)
-        setProfile(null)
-        setProfileChecked(true)
-      }
-
-      return authData
+      await api.post('/auth/register', { full_name, email, password, phone, company_name, business_segment })
+      // Após registro via backend, o usuário deve confirmar o e-mail antes de logar
+      // Retorna sem sessão — a UI deve mostrar mensagem de confirmação
+      return { needsEmailConfirmation: true }
     } finally {
-      // Sempre libera o flag, mesmo que ocorra um erro no Supabase Auth
       isRegistering.current = false
     }
   }
 
+  // OAuth Google — redireciona para o Google via URL retornada pelo backend
   async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    })
-    if (error) throw error
+    try {
+      const { data } = await api.get('/auth/google')
+      window.location.href = data.url
+    } catch {
+      // Fallback para OAuth direto do cliente se backend falhar
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      })
+      if (error) throw error
+    }
   }
 
-  // Cria perfil para usuários OAuth que não completaram o cadastro
+  // Cria perfil para usuários OAuth que não completaram o cadastro (fluxo legacy)
   async function registerProfile(formData) {
     const { full_name, phone, company_name, business_segment } = formData
 
-    const { data: profile, error } = await supabase
+    const { data: profileData, error } = await supabase
       .from('profiles')
       .insert({ id: user.id, full_name, email: user.email, phone, company_name, business_segment })
       .select()
@@ -139,17 +109,28 @@ export function AuthProvider({ children }) {
 
     if (error) throw new Error(error.message)
 
-    setProfile(profile)
+    setProfile(profileData)
     setProfileChecked(true)
 
-    return profile
+    return profileData
   }
 
+  // Logout global — invalida todas as sessões no servidor
   async function signOut() {
-    setUser(null)
-    setProfile(null)
-    setProfileChecked(false)
-    await supabase.auth.signOut()
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Mesmo se o backend falhar, limpa o estado local
+    } finally {
+      setUser(null)
+      setProfile(null)
+      setProfileChecked(false)
+      await supabase.auth.signOut()
+    }
+  }
+
+  function refreshProfile() {
+    if (user) return fetchProfile(user.id)
   }
 
   return (
@@ -165,6 +146,7 @@ export function AuthProvider({ children }) {
         signInWithGoogle,
         signOut,
         registerProfile,
+        refreshProfile,
       }}
     >
       {children}

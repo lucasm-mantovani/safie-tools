@@ -1,32 +1,50 @@
 import { Router } from 'express'
-import rateLimit from 'express-rate-limit'
 import { register, checkProfile, getProfile, updateProfile } from '../controllers/authController.js'
+import {
+  registerUser, loginUser, logoutUser,
+  getGoogleOAuthUrl, handleOAuthCallback,
+  forgotPassword, resetPassword,
+  listSessions, revokeSession,
+} from '../controllers/authNewController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
+import { authLimiter } from '../utils/rateLimiter.js'
 import { validate, registerSchema, updateProfileSchema } from '../utils/validators.js'
 
 const router = Router()
 
-// Rate limit mais restritivo para rotas de autenticação (evita brute force e abuso)
-const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 20,
-  message: { message: 'Muitas tentativas de autenticação. Aguarde 15 minutos.' },
-})
+// ── Novas rotas de autenticação (backend-initiated) ──────────────────────────
 
-// POST /api/auth/register — cria perfil + contato HubSpot após signUp do Supabase
-// REQUER authMiddleware: o usuário deve estar autenticado no Supabase antes de chamar
-// ATENÇÃO: exige que a confirmação de e-mail esteja DESABILITADA no Supabase
-//          (Authentication → Providers → Email → "Confirm email" = OFF)
-router.post('/register', authRateLimit, authMiddleware, validate(registerSchema), register)
+// Registro via backend (cria usuário no Supabase + perfil)
+router.post('/register', authLimiter, registerUser)
 
-// GET /api/auth/profile/check — verifica se perfil já existe (usado no fluxo OAuth)
-// Retorna { exists: boolean, profile? } — nunca retorna 404
+// Login com registro de tentativas e rate limit por e-mail
+router.post('/login', authLimiter, loginUser)
+
+// Logout global (invalida todas as sessões do dispositivo)
+router.post('/logout', authMiddleware, logoutUser)
+
+// OAuth Google
+router.get('/google', authLimiter, getGoogleOAuthUrl)
+router.get('/callback', handleOAuthCallback)
+
+// Recuperação de senha
+router.post('/forgot-password', authLimiter, forgotPassword)
+router.post('/reset-password', resetPassword)
+
+// Gestão de sessões ativas
+router.get('/sessions', authMiddleware, listSessions)
+router.delete('/sessions/:id', authMiddleware, revokeSession)
+
+// ── Rotas legadas (mantidas para compatibilidade durante migração) ────────────
+
+// Cria perfil para usuário já autenticado (fluxo OAuth legacy)
+router.post('/complete-profile', authLimiter, authMiddleware, validate(registerSchema), register)
+
+// Verificação de perfil OAuth
 router.get('/profile/check', authMiddleware, checkProfile)
 
-// GET /api/auth/profile — retorna perfil completo do usuário autenticado
+// Perfil do usuário autenticado
 router.get('/profile', authMiddleware, getProfile)
-
-// PATCH /api/auth/profile — atualiza dados do perfil e sincroniza com HubSpot
 router.patch('/profile', authMiddleware, validate(updateProfileSchema), updateProfile)
 
 export default router

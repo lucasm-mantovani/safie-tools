@@ -1,24 +1,33 @@
-export function errorHandler(err, req, res, _next) {
-  console.error(`[ERRO] ${req.method} ${req.path} —`, err.message)
+import { logger } from '../utils/logger.js'
 
-  // Erros conhecidos do Supabase
+export function errorHandler(err, req, res, _next) {
+  const requestId = req.headers['x-request-id'] || crypto.randomUUID()
+  const userId = req.user?.id || 'unauthenticated'
+
+  logger.error(`${req.method} ${req.path}`, { requestId, userId, message: err.message, code: err.code })
+
   if (err.code === '23505') {
-    return res.status(409).json({ message: 'Este registro já existe.' })
+    return res.status(409).json({ error: 'conflict', message: 'Este registro já existe.' })
   }
   if (err.code === '23503') {
-    return res.status(400).json({ message: 'Referência inválida nos dados enviados.' })
+    return res.status(400).json({ error: 'bad_request', message: 'Referência inválida nos dados enviados.' })
   }
   if (err.code === 'PGRST116') {
-    return res.status(404).json({ message: 'Registro não encontrado.' })
+    return res.status(404).json({ error: 'not_found', message: 'Registro não encontrado.' })
   }
 
   const status = err.status || err.statusCode || 500
-  const message = status < 500
-    ? (err.message || 'Requisição inválida')
-    : 'Erro interno do servidor. Tente novamente em instantes.'
 
-  res.status(status).json({
-    message,
-    ...(process.env.NODE_ENV === 'development' && { detail: err.message, stack: err.stack }),
+  if (status < 500) {
+    return res.status(status).json({ error: 'bad_request', message: err.message || 'Requisição inválida.' })
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return res.status(500).json({ error: 'internal_error', message: err.message, stack: err.stack })
+  }
+
+  res.status(500).json({
+    error: 'internal_error',
+    message: 'Ocorreu um erro interno. Nossa equipe foi notificada.',
   })
 }
