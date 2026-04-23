@@ -66,6 +66,7 @@ const FERRAMENTAS = [
     tempo: '5–10 min',
     Icon: IconBalance,
     cor: '#154efa',
+    comingSoon: false,
   },
   {
     slug: 'tax-better',
@@ -75,6 +76,7 @@ const FERRAMENTAS = [
     tempo: '3–5 min',
     Icon: IconChart,
     cor: '#0ea5e9',
+    comingSoon: true,
   },
   {
     slug: 'labor-risk',
@@ -84,6 +86,7 @@ const FERRAMENTAS = [
     tempo: '5–8 min',
     Icon: IconShield,
     cor: '#f59e0b',
+    comingSoon: true,
   },
   {
     slug: 'fast-due-diligence',
@@ -93,6 +96,7 @@ const FERRAMENTAS = [
     tempo: '3–5 min',
     Icon: IconDocument,
     cor: '#8b5cf6',
+    comingSoon: true,
   },
   {
     slug: 'litigation-cost',
@@ -102,6 +106,7 @@ const FERRAMENTAS = [
     tempo: '5–8 min',
     Icon: IconGavel,
     cor: '#ef4444',
+    comingSoon: true,
   },
   {
     slug: 'partners-cash',
@@ -111,6 +116,7 @@ const FERRAMENTAS = [
     tempo: '3–5 min',
     Icon: IconWallet,
     cor: '#10b981',
+    comingSoon: true,
   },
 ]
 
@@ -283,32 +289,42 @@ function FirstVisitBanner() {
 
 // Card de ferramenta do dashboard
 function DashboardToolCard({ ferramenta, onAccess }) {
-  const { Icon, nome, nomeCompleto, descricao, tempo, cor } = ferramenta
+  const { Icon, nomeCompleto, descricao, tempo, cor, comingSoon } = ferramenta
 
   return (
     <div
-      className="group bg-white rounded-2xl p-5 border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-4"
-      onClick={onAccess}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onAccess()}
-      aria-label={`Acessar: ${nomeCompleto}`}
+      className={`group bg-white rounded-2xl p-5 border border-gray-100 flex flex-col gap-4 transition-all duration-300 ${
+        comingSoon
+          ? 'opacity-60 cursor-not-allowed'
+          : 'hover:border-gray-200 hover:shadow-lg cursor-pointer'
+      }`}
+      onClick={comingSoon ? undefined : onAccess}
+      role={comingSoon ? undefined : 'button'}
+      tabIndex={comingSoon ? -1 : 0}
+      onKeyDown={(e) => !comingSoon && e.key === 'Enter' && onAccess()}
+      aria-label={comingSoon ? `${nomeCompleto} — em breve` : `Acessar: ${nomeCompleto}`}
     >
       {/* Header do card */}
       <div className="flex items-start justify-between">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-opacity duration-300"
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
           style={{ backgroundColor: `${cor}15`, color: cor }}
         >
           <Icon />
         </div>
-        <div className="flex items-center gap-1 bg-gray-50 rounded-full px-2.5 py-1">
-          <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          <span className="font-cta text-xs text-gray-400">{tempo}</span>
-        </div>
+        {comingSoon ? (
+          <span className="font-cta text-xs font-semibold bg-gray-100 text-gray-400 rounded-full px-2.5 py-1">
+            Em breve
+          </span>
+        ) : (
+          <div className="flex items-center gap-1 bg-gray-50 rounded-full px-2.5 py-1">
+            <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span className="font-cta text-xs text-gray-400">{tempo}</span>
+          </div>
+        )}
       </div>
 
       {/* Conteúdo */}
@@ -319,16 +335,22 @@ function DashboardToolCard({ ferramenta, onAccess }) {
 
       {/* Rodapé */}
       <div className="flex items-center justify-between pt-1 border-t border-gray-50">
-        <span className="font-cta text-xs font-semibold" style={{ color: cor }}>
-          Iniciar análise
-        </span>
-        <svg
-          className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200"
-          style={{ color: cor }}
-          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
+        {comingSoon ? (
+          <span className="font-cta text-xs text-gray-400">Em desenvolvimento</span>
+        ) : (
+          <>
+            <span className="font-cta text-xs font-semibold" style={{ color: cor }}>
+              Iniciar análise
+            </span>
+            <svg
+              className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200"
+              style={{ color: cor }}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </>
+        )}
       </div>
     </div>
   )
