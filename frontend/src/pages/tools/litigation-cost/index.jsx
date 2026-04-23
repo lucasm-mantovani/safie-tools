@@ -229,7 +229,7 @@ function Results({ result, form, onExportPDF, onReset }) {
         <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">Próximo passo</p>
         <h3 className="font-heading text-lg font-bold mb-2">Decida com estratégia, não com emoção</h3>
         <p className="font-body text-sm text-gray-400 leading-relaxed mb-5">A SAFIE analisa o mérito jurídico do seu caso e apresenta as melhores opções: negociar, mediar ou litigar — com números reais.</p>
-        <a href="https://safie.com.br" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary transition-colors px-5 py-2.5 rounded-lg">
+        <a href="https://safie.com.br" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary hover:text-bg-dark transition-colors px-5 py-2.5 rounded-lg">
           Falar com a SAFIE
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
         </a>

@@ -170,7 +170,7 @@ export default function QualificationModal() {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary disabled:opacity-50 transition-colors px-5 py-3 rounded-xl"
+            className="w-full font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary hover:text-bg-dark disabled:opacity-50 transition-colors px-5 py-3 rounded-xl"
           >
             {submitting ? 'Calculando diagnóstico...' : 'Ver meu diagnóstico →'}
           </button>

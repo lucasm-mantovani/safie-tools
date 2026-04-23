@@ -7,18 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#154efa',
-        secondary: '#2414fa',
-        'bg-light': '#f5f7fd',
-        'bg-dark': '#0f0f29',
-        // Aliases descritivos usados nos componentes
-        'safie-light': '#f5f7fd',
-        'safie-dark': '#0f0f29',
+        primary:      '#154efa',  // azul royal — botões e ações
+        secondary:    '#14dffa',  // ciano elétrico — hover, links, acentos
+        tertiary:     '#07074b',  // azul marinho — base da interface
+        'bg-light':   '#f5f7fd',  // branco atenuado
+        'bg-dark':    '#07074b',  // azul marinho escuro
+        'safie-light':'#f5f7fd',
+        'safie-dark': '#07074b',
       },
       fontFamily: {
-        heading: ['Esphimere', 'Playfair Display', 'serif'],
-        body: ['Telegraf', 'Inter', 'sans-serif'],
-        cta: ['Inter', 'sans-serif'],
+        heading: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        body:    ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        cta:     ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      fontWeight: {
+        display: '800',
       },
       spacing: {
         '18': '4.5rem',

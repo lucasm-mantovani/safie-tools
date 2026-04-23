@@ -1,5 +1,5 @@
-/* Fontes do Google Fonts (fallback para Esphimere e Telegraf) */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+/* Inter — pesos 400 a 900 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,15 +7,14 @@
 
 /* Variáveis de marca SAFIE */
 :root {
-  --color-primary: #154efa;
-  --color-secondary: #2414fa;
-  --color-bg-light: #f5f7fd;
-  --color-bg-dark: #0f0f29;
-  --color-text-dark: #0f0f29;
+  --color-primary:    #154efa;  /* azul royal */
+  --color-secondary:  #14dffa;  /* ciano elétrico */
+  --color-tertiary:   #07074b;  /* azul marinho */
+  --color-bg-light:   #f5f7fd;  /* branco atenuado */
+  --color-bg-dark:    #07074b;
+  --color-text-dark:  #07074b;
   --color-text-muted: #64748b;
-  --font-heading: 'Esphimere', 'Playfair Display', serif;
-  --font-body: 'Telegraf', 'Inter', sans-serif;
-  --font-cta: 'Inter', sans-serif;
+  --font-base: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 * {
@@ -23,7 +22,8 @@
 }
 
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-base);
+  font-weight: 400;
   background-color: var(--color-bg-light);
   color: var(--color-text-dark);
   -webkit-font-smoothing: antialiased;
@@ -31,19 +31,20 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
+  font-family: var(--font-base);
+  font-weight: 700;
 }
 
 /* Utilitários de marca */
 @layer utilities {
-  .text-primary { color: var(--color-primary); }
-  .bg-primary { background-color: var(--color-primary); }
-  .bg-secondary { background-color: var(--color-secondary); }
-  .bg-safie-light { background-color: var(--color-bg-light); }
+  .text-primary  { color: var(--color-primary); }
+  .bg-primary    { background-color: var(--color-primary); }
+  .bg-secondary  { background-color: var(--color-secondary); }
+  .bg-safie-light{ background-color: var(--color-bg-light); }
   .bg-safie-dark { background-color: var(--color-bg-dark); }
-  .font-heading { font-family: var(--font-heading); }
-  .font-body { font-family: var(--font-body); }
-  .font-cta { font-family: var(--font-cta); }
+  .font-heading  { font-family: var(--font-base); }
+  .font-body     { font-family: var(--font-base); }
+  .font-cta      { font-family: var(--font-base); }
 }
 
 /* Animações */
@@ -73,22 +74,20 @@ h1, h2, h3, h4, h5, h6 {
     animation: pulseRing 4s ease-in-out infinite;
   }
 
-  /* Delays para animações em sequência */
   .delay-100 { animation-delay: 100ms; }
   .delay-200 { animation-delay: 200ms; }
   .delay-300 { animation-delay: 300ms; }
   .delay-400 { animation-delay: 400ms; }
   .delay-500 { animation-delay: 500ms; }
 
-  /* Gradiente hero */
+  /* Gradiente hero — base azul marinho #07074b */
   .hero-gradient {
     background:
-      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(21, 78, 250, 0.12) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(36, 20, 250, 0.08) 0%, transparent 70%),
-      #0f0f29;
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(21, 78, 250, 0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(20, 223, 250, 0.10) 0%, transparent 70%),
+      #07074b;
   }
 
-  /* Borda gradiente para cards especiais */
   .border-gradient-primary {
     border: 1px solid transparent;
     background-clip: padding-box;

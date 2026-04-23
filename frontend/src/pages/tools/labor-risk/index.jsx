@@ -459,7 +459,7 @@ function Results({ result, hasHadLawsuit, onExportPDF, onReset }) {
           href="https://safie.com.br"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary transition-colors px-5 py-2.5 rounded-lg"
+          className="inline-flex items-center gap-1.5 font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary hover:text-bg-dark transition-colors px-5 py-2.5 rounded-lg"
         >
           Falar com a SAFIE
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

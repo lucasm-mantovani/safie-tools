@@ -40,7 +40,7 @@ export default class EquityErrorBoundary extends Component {
             <div className="flex flex-col gap-3">
               <button
                 onClick={this.handleRetry}
-                className="w-full font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary px-5 py-3 rounded-xl transition-colors"
+                className="w-full font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary hover:text-bg-dark px-5 py-3 rounded-xl transition-colors"
               >
                 Tentar novamente
               </button>
