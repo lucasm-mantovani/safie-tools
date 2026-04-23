@@ -29,7 +29,7 @@ export default function Footer() {
               Ferramentas gratuitas para founders e gestores de empresas de tecnologia tomarem decisões com mais segurança jurídica e contábil.
             </p>
             <p className="font-body text-xs text-gray-600 mt-4">
-              ferramentas.safie.com.br
+              safie-tools.vercel.app
             </p>
           </div>
 

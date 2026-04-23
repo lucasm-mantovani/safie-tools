@@ -30,7 +30,6 @@ app.use(helmet({
 }))
 
 const ALLOWED_ORIGINS = [
-  'https://ferramentas.safie.com.br',
   'https://safie-tools.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173',
