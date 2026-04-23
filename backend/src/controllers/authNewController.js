@@ -19,24 +19,6 @@ function syncHubspotAsync(userId, contactData) {
   })()
 }
 
-async function logLoginAttempt(email, ip, userAgent, success) {
-  try {
-    await supabaseAdmin.from('login_attempts').insert({ email, ip_address: ip, user_agent: userAgent, success })
-  } catch (err) {
-    logger.error('Falha ao registrar tentativa de login', { message: err.message })
-  }
-}
-
-async function checkRateLimit(email) {
-  const { count } = await supabaseAdmin
-    .from('login_attempts')
-    .select('*', { count: 'exact', head: true })
-    .eq('email', email)
-    .eq('success', false)
-    .gte('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
-
-  return (count || 0) >= 5
-}
 
 export async function registerUser(req, res, next) {
   try {
@@ -89,26 +71,16 @@ export async function registerUser(req, res, next) {
 export async function loginUser(req, res, next) {
   try {
     const { email, password } = req.body
-    const ip = req.ip
-    const userAgent = req.headers['user-agent'] || ''
 
     if (!email || !password) {
       return res.status(400).json({ error: 'validation', message: 'E-mail e senha são obrigatórios.' })
     }
 
-    const locked = await checkRateLimit(email)
-    if (locked) {
-      return res.status(429).json({ error: 'rate_limited', message: 'Muitas tentativas. Tente novamente em 15 minutos.' })
-    }
-
     const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password })
 
     if (error || !data.session) {
-      await logLoginAttempt(email, ip, userAgent, false)
       return res.status(401).json({ error: 'invalid_credentials', message: 'E-mail ou senha incorretos.' })
     }
-
-    await logLoginAttempt(email, ip, userAgent, true)
 
     // Recovery: cria perfil se não existir (caso registro falhou anteriormente)
     const { data: existingProfile } = await supabaseAdmin
@@ -126,16 +98,8 @@ export async function loginUser(req, res, next) {
         phone: meta.phone || null,
         company_name: meta.company_name || null,
         business_segment: meta.business_segment || null,
-      }).catch(e => logger.error('[Login] Falha no recovery do perfil', { userId: data.user.id, error: e.message }))
+      })
     }
-
-    // Atualiza last_login_at e incrementa login_count
-    await supabaseAdmin
-      .from('profiles')
-      .update({ last_login_at: new Date().toISOString() })
-      .eq('id', data.user.id)
-
-    await supabaseAdmin.rpc('increment_login_count', { user_id: data.user.id }).catch(() => {})
 
     res.json({
       session: {
