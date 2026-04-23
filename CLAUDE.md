@@ -26,9 +26,12 @@ npm run test --workspace=backend
 
 **Frontend:** automático a cada `git push origin main` via Vercel.
 
-**Backend: NUNCA tem deploy automático.** Sempre rodar manualmente após qualquer alteração:
+**Backend: deploy automático via GitHub** (Root Directory = `backend` configurado no Vercel). Também pode ser feito manualmente a partir da **raiz** do repositório:
 ```bash
-cd backend && npx vercel --prod
+# Na raiz do projeto (não dentro de backend/)
+mkdir -p .vercel && echo '{"projectId":"prj_zrzc54DkdlBBn7zRWzfPRDr9h48S","orgId":"team_97hFHiU779G4hn00tbBNNJVp","projectName":"backend"}' > .vercel/project.json
+npx vercel --prod
+rm -rf .vercel
 ```
 
 ## Arquitetura
