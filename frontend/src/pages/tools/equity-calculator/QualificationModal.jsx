@@ -86,7 +86,7 @@ export default function QualificationModal() {
         timeout,
       ])
       setQualificationData(answers)
-      setResults(data.result, data.session_id)
+      setResults(data, data.session_id)
     } catch (err) {
       if (err.message === 'TIMEOUT') {
         setError('Não foi possível carregar. Verifique sua conexão e tente novamente.')
