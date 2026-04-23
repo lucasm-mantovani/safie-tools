@@ -5,6 +5,9 @@ import { hubspotService } from '../services/hubspotService.js'
 import { calculate } from '../services/equityCalculatorService.js'
 import { generateNarrative } from '../services/narrativeService.js'
 import { generateAlerts } from '../services/alertService.js'
+import { runFullCalculation } from '../services/taxCalculatorService.js'
+import { generateLevers } from '../services/taxLeverService.js'
+import { calculateHealthScore } from '../services/healthScoreService.js'
 
 export async function listTools(req, res, next) {
   try {
@@ -816,4 +819,120 @@ export async function createEquityShare(req, res, next) {
 
 export async function getEquityBenchmark(req, res) {
   res.json({ available: false, message: 'Dados de benchmark insuficientes ainda.' })
+}
+
+// ── Tax Diagnostic ──────────────────────────────────────────────────────────
+
+function buildCalcData(body) {
+  const { company_profile, revenue_data, cost_structure = {}, supplementary_data = {} } = body
+  return {
+    monthly_revenue: revenue_data.monthly_revenue,
+    activity_type: company_profile.activity_type,
+    current_regime: company_profile.current_regime === 'nao_sei' ? 'lucro_presumido' : company_profile.current_regime,
+    services_revenue_pct: revenue_data.services_revenue_pct ?? 100,
+    payroll: cost_structure.payroll ?? 0,
+    documented_supplier_costs: cost_structure.documented_supplier_costs ?? 0,
+    rent: cost_structure.rent ?? 0,
+    other_documented_costs: cost_structure.other_documented_costs ?? 0,
+    iss_rate: supplementary_data.iss_rate ?? 0.05,
+  }
+}
+
+export async function createTaxDiagnosticSession(req, res, next) {
+  try {
+    const calcData = buildCalcData(req.body)
+    const results = runFullCalculation(calcData)
+    const levers = generateLevers(req.body, results)
+    const health_score = calculateHealthScore(req.body, results)
+
+    const qualification_data = {
+      tax_annual_revenue_range: String(req.body.revenue_data.monthly_revenue * 12),
+      tax_current_regime: req.body.company_profile.current_regime,
+      tax_last_reviewed: req.body.qualification_data?.last_regime_review || req.body.supplementary_data?.last_regime_review || '',
+      tax_has_accountant: req.body.qualification_data?.has_accountant || req.body.supplementary_data?.has_accountant || '',
+      tax_recommended_regime: results.recommended_regime,
+      tax_annual_savings_potential: String(Math.round(results.annual_savings_potential)),
+      tax_sql_tag: results.annual_savings_potential > 12000
+        || req.body.qualification_data?.has_accountant === 'nao'
+        || req.body.qualification_data?.has_accountant === 'insatisfeito',
+      ...req.body.qualification_data,
+    }
+
+    const session = await supabaseService.createToolSession({
+      userId: req.user.id,
+      toolSlug: 'tax-regime-diagnostic',
+      inputData: req.body,
+      outputData: { results, levers, health_score },
+      qualificationData: qualification_data,
+    })
+
+    ;(async () => {
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles').select('hubspot_contact_id').eq('id', req.user.id).single()
+        if (!profile?.hubspot_contact_id) return
+        await hubspotService.updateContact(profile.hubspot_contact_id, {
+          safie_tools_last_tool_used: 'tax-regime-diagnostic',
+          tax_annual_revenue_range: qualification_data.tax_annual_revenue_range,
+          tax_current_regime: qualification_data.tax_current_regime,
+          tax_last_reviewed: qualification_data.tax_last_reviewed,
+          tax_has_accountant: qualification_data.tax_has_accountant,
+          tax_recommended_regime: qualification_data.tax_recommended_regime,
+          tax_annual_savings_potential: qualification_data.tax_annual_savings_potential,
+          tax_sql_tag: String(qualification_data.tax_sql_tag),
+        })
+        await supabaseAdmin.from('tool_sessions').update({ hubspot_synced: true }).eq('id', session.id)
+      } catch (err) {
+        console.error('[HubSpot] Sync tax-diagnostic falhou:', err.message)
+      }
+    })()
+
+    res.status(201).json({ result: { results, levers, health_score }, qualification_data, session_id: session.id })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getTaxDiagnosticSession(req, res, next) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('tool_sessions').select('*')
+      .eq('id', req.params.id).eq('tool_slug', 'tax-regime-diagnostic').single()
+    if (error) throw error
+    if (data.user_id !== req.user.id) return res.status(403).json({ message: 'Acesso negado' })
+    res.json({ session: data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getTaxDiagnosticSessionsByUser(req, res, next) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('tool_sessions').select('*')
+      .eq('user_id', req.user.id).eq('tool_slug', 'tax-regime-diagnostic')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    res.json({ sessions: data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getTaxDiagnosticBenchmark(req, res, next) {
+  try {
+    const { segment, monthly_revenue_range } = req.query
+    const { data, error } = await supabaseAdmin
+      .from('tool_sessions')
+      .select('output_data, qualification_data')
+      .eq('tool_slug', 'tax-regime-diagnostic')
+      .limit(100)
+    if (error) throw error
+    if (!data || data.length < 5) return res.json({ available: false, message: 'Dados de benchmark insuficientes ainda.' })
+    const regimes = data.map(s => s.output_data?.results?.recommended_regime).filter(Boolean)
+    const freq = regimes.reduce((acc, r) => { acc[r] = (acc[r] || 0) + 1; return acc }, {})
+    res.json({ available: true, sample_size: data.length, recommended_regime_distribution: freq })
+  } catch (err) {
+    next(err)
+  }
 }

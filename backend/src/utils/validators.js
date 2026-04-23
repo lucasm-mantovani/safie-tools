@@ -47,13 +47,60 @@ export const equityCalculatorSchema = z.object({
   business_segment: z.string().min(1, 'Segmento é obrigatório'),
 })
 
-// Tax Better
+// Tax Better (legado — mantido para compatibilidade)
 export const taxBetterSchema = z.object({
   annual_revenue_range: z.enum(['ate_81k', '81k_360k', '360k_1M', '1M_4_8M', '4_8M_78M', 'acima_78M']),
   current_regime: z.enum(['mei', 'simples', 'lucro_presumido', 'lucro_real', 'nao_sei']),
   activity_type: z.enum(['servicos', 'produtos', 'misto']),
   profit_margin: z.enum(['ate_10', '10_a_20', '20_a_30', 'acima_30']),
   last_reviewed: z.enum(['nunca', 'menos_1_ano', '1_a_2_anos', 'mais_2_anos']),
+})
+
+// Tax Diagnostic — schema completo
+const partnerRemunerationItemSchema = z.object({
+  prolabore: z.number().min(0),
+  profit_distribution: z.number().min(0),
+})
+
+export const taxDiagnosticSchema = z.object({
+  company_profile: z.object({
+    activity_type: z.enum(['servicos', 'produtos', 'misto']),
+    current_regime: z.enum(['mei', 'simples', 'lucro_presumido', 'lucro_real', 'nao_sei']),
+    state: z.string().optional(),
+    company_stage: z.string().optional(),
+    cnae: z.string().optional(),
+  }),
+  revenue_data: z.object({
+    monthly_revenue: z.number().positive('Faturamento mensal é obrigatório'),
+    services_revenue_pct: z.number().min(0).max(100).default(100),
+    products_revenue_pct: z.number().min(0).max(100).default(0),
+    has_seasonal_revenue: z.boolean().default(false),
+    has_export_revenue: z.boolean().default(false),
+    has_financial_revenue: z.boolean().default(false),
+  }),
+  cost_structure: z.object({
+    payroll: z.number().min(0).default(0),
+    documented_supplier_costs: z.number().min(0).default(0),
+    rent: z.number().min(0).default(0),
+    equipment_depreciation: z.number().min(0).default(0),
+    other_documented_costs: z.number().min(0).default(0),
+    rd_investment: z.number().min(0).default(0),
+  }).default({}),
+  partner_remuneration: z.object({
+    partners_count: z.number().int().min(1).default(1),
+    total_prolabore: z.number().min(0).default(0),
+    total_profit_distribution: z.number().min(0).default(0),
+    partners: z.array(partnerRemunerationItemSchema).default([]),
+  }).default({}),
+  supplementary_data: z.object({
+    has_accountant: z.enum(['sim', 'nao', 'insatisfeito']).optional(),
+    last_regime_review: z.enum(['nunca', 'menos_1_ano', '1_a_2_anos', 'mais_2_anos']).optional(),
+    has_rd_investment: z.boolean().default(false),
+    has_export_revenue: z.boolean().default(false),
+    has_real_estate: z.boolean().default(false),
+    iss_rate: z.number().min(0).max(0.05).default(0.05),
+  }).default({}),
+  qualification_data: z.record(z.unknown()).default({}),
 })
 
 // Labor Risk

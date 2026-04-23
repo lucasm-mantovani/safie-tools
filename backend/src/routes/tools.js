@@ -5,12 +5,14 @@ import {
   createEquityInvite, createEquityShare, getEquityBenchmark,
   calculateTaxBetter, calculateLaborRisk, calculateFastDueDiligence,
   calculateLitigationCost, calculatePartnersCash,
+  createTaxDiagnosticSession, getTaxDiagnosticSession,
+  getTaxDiagnosticSessionsByUser, getTaxDiagnosticBenchmark,
 } from '../controllers/toolsController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
 import {
   validate, equitySessionSchema, equityInviteSchema,
   taxBetterSchema, laborRiskSchema, fastDueDiligenceSchema,
-  litigationCostSchema, partnersCashSchema,
+  litigationCostSchema, partnersCashSchema, taxDiagnosticSchema,
 } from '../utils/validators.js'
 
 const router = Router()
@@ -25,8 +27,14 @@ router.post('/equity-calculator/invite', authMiddleware, validate(equityInviteSc
 router.post('/equity-calculator/share', authMiddleware, createEquityShare)
 router.get('/equity-calculator/benchmark', authMiddleware, getEquityBenchmark)
 
-// POST /api/tools/tax-better — diagnóstico de regime tributário
+// POST /api/tools/tax-better — diagnóstico legado
 router.post('/tax-better', authMiddleware, validate(taxBetterSchema), calculateTaxBetter)
+
+// Tax Diagnostic — rotas completas
+router.post('/tax-diagnostic/session', authMiddleware, validate(taxDiagnosticSchema), createTaxDiagnosticSession)
+router.get('/tax-diagnostic/sessions', authMiddleware, getTaxDiagnosticSessionsByUser)
+router.get('/tax-diagnostic/session/:id', authMiddleware, getTaxDiagnosticSession)
+router.get('/tax-diagnostic/benchmark', authMiddleware, getTaxDiagnosticBenchmark)
 
 // POST /api/tools/labor-risk — avalia risco trabalhista de contratos PJ
 router.post('/labor-risk', authMiddleware, validate(laborRiskSchema), calculateLaborRisk)
