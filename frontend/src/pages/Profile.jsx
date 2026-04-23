@@ -24,7 +24,7 @@ const SEGMENTS = [
   { value: 'outros', label: 'Outros' },
 ]
 
-function TabAccount({ profile, onSave }) {
+function TabAccount({ profile, user, onSave }) {
   const [form, setForm] = useState({
     full_name: profile?.full_name || '',
     phone: profile?.phone || '',
@@ -43,6 +43,14 @@ function TabAccount({ profile, onSave }) {
 
   async function handleSave(e) {
     e.preventDefault()
+    if (!form.full_name.trim()) {
+      setError('Nome completo é obrigatório.')
+      return
+    }
+    if (form.linkedin_url && !form.linkedin_url.startsWith('https://')) {
+      setError('URL do LinkedIn deve começar com https://')
+      return
+    }
     setSaving(true)
     setError(null)
     setSuccess(false)
@@ -64,17 +72,17 @@ function TabAccount({ profile, onSave }) {
 
       <div className="grid grid-cols-1 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
-          <input value={form.full_name} onChange={handleChange('full_name')} className="w-full border border-gray-300 rounded-[16px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo <span className="text-red-500">*</span></label>
+          <input value={form.full_name} onChange={handleChange('full_name')} maxLength={100} className="w-full border border-gray-300 rounded-[16px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-          <input value={profile?.email || ''} disabled className="w-full border border-gray-200 bg-gray-50 rounded-[16px] px-3 py-2 text-sm text-gray-400" />
+          <input value={profile?.email || user?.email || ''} disabled className="w-full border border-gray-200 bg-gray-50 rounded-[16px] px-3 py-2 text-sm text-gray-400" />
           <p className="text-xs text-gray-400 mt-1">Para alterar o e-mail, acesse a aba Segurança.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-          <input value={form.phone} onChange={handleChange('phone')} placeholder="(11) 99999-9999" className="w-full border border-gray-300 rounded-[16px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <input value={form.phone} onChange={handleChange('phone')} placeholder="(11) 99999-9999" maxLength={20} className="w-full border border-gray-300 rounded-[16px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
@@ -115,6 +123,10 @@ function TabSecurity({ profile }) {
 
   async function handleChangePassword(e) {
     e.preventDefault()
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      setError('Preencha todos os campos de senha.')
+      return
+    }
     if (passwords.new !== passwords.confirm) {
       setError('Nova senha e confirmação não coincidem.')
       return
@@ -259,7 +271,7 @@ function TabPrivacy() {
 }
 
 export default function Profile() {
-  const { profile, refreshProfile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const [activeTab, setActiveTab] = useState('account')
 
   return (
@@ -280,7 +292,7 @@ export default function Profile() {
         ))}
       </div>
 
-      {activeTab === 'account' && <TabAccount profile={profile} onSave={refreshProfile} />}
+      {activeTab === 'account' && <TabAccount profile={profile} user={user} onSave={refreshProfile} />}
       {activeTab === 'security' && <TabSecurity profile={profile} />}
       {activeTab === 'notifications' && <TabNotifications profile={profile} />}
       {activeTab === 'privacy' && <TabPrivacy />}

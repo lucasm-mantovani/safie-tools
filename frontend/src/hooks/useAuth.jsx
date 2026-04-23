@@ -26,15 +26,17 @@ export function AuthProvider({ children }) {
       }
     }, 8000)
 
-    // Bootstrap: busca sessão imediatamente sem depender do listener
+    // Bootstrap: define auth imediatamente e busca perfil em background
+    // loading=false logo após saber o estado de auth para evitar tela de carregamento longa
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
       clearTimeout(timeoutId)
       setUser(session?.user ?? null)
+      setLoading(false)
       if (session?.user && !isRegistering.current) {
         fetchProfile(session.user.id)
       } else {
-        setLoading(false)
+        setProfileChecked(true)
       }
     })
 
@@ -77,7 +79,6 @@ export function AuthProvider({ children }) {
       setProfile(null)
     } finally {
       setProfileChecked(true)
-      setLoading(false)
     }
   }
 
