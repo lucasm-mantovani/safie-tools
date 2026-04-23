@@ -9,6 +9,8 @@ import CompleteProfile from './pages/CompleteProfile'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import AuthCallback from './pages/AuthCallback'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import EquityCalculator from './pages/tools/equity-calculator'
 import TaxBetter from './pages/tools/tax-better'
 import LaborRisk from './pages/tools/labor-risk'
@@ -89,6 +91,13 @@ export default function App() {
           path="/completar-perfil"
           element={<CompleteProfileRoute><PageWrapper><CompleteProfile /></PageWrapper></CompleteProfileRoute>}
         />
+
+        {/* Recuperação de senha */}
+        <Route
+          path="/esqueci-senha"
+          element={<PublicOnlyRoute><PageWrapper><ForgotPassword /></PageWrapper></PublicOnlyRoute>}
+        />
+        <Route path="/reset-password" element={<PageWrapper><ResetPassword /></PageWrapper>} />
 
         {/* Callback de OAuth e confirmação de e-mail */}
         <Route path="/auth/callback" element={<AuthCallback />} />

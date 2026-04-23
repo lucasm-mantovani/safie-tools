@@ -155,6 +155,14 @@ export function AuthProvider({ children }) {
     if (user) return fetchProfile(user.id)
   }
 
+  async function forgotPassword(email) {
+    await api.post('/auth/forgot-password', { email })
+  }
+
+  async function resetPassword(token, newPassword) {
+    await api.post('/auth/reset-password', { access_token: token, new_password: newPassword })
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -169,6 +177,8 @@ export function AuthProvider({ children }) {
         signOut,
         registerProfile,
         refreshProfile,
+        forgotPassword,
+        resetPassword,
       }}
     >
       {children}

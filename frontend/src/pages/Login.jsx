@@ -98,15 +98,22 @@ export default function Login() {
                 required
                 error={errors.email}
               />
-              <Input
-                label="Senha"
-                name="password"
-                type="password"
-                placeholder="Sua senha"
-                register={register}
-                required
-                error={errors.password}
-              />
+              <div>
+                <Input
+                  label="Senha"
+                  name="password"
+                  type="password"
+                  placeholder="Sua senha"
+                  register={register}
+                  required
+                  error={errors.password}
+                />
+                <div className="flex justify-end mt-1">
+                  <Link to="/esqueci-senha" className="font-body text-sm text-primary hover:underline">
+                    Esqueci minha senha
+                  </Link>
+                </div>
+              </div>
 
               {serverError && (
                 <p className="font-body text-sm text-red-500 text-center">{serverError}</p>
