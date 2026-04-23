@@ -11,8 +11,19 @@ const PORT = process.env.PORT || 3001
 
 // Segurança
 app.use(helmet())
+
+const ALLOWED_ORIGINS = [
+  'https://safie-tools.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+]
+if (process.env.FRONTEND_URL) ALLOWED_ORIGINS.push(process.env.FRONTEND_URL)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
+    callback(new Error(`CORS: origem não permitida: ${origin}`))
+  },
   credentials: true,
 }))
 

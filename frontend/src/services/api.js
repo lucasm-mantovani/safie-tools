@@ -21,7 +21,10 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.message || 'Erro inesperado. Tente novamente.'
+    const status = error.response?.status
+    const message = error.response?.data?.message
+      || (status ? `Erro ${status} — tente novamente.` : 'Sem resposta do servidor. Verifique sua conexão.')
+    console.error('[API]', error.config?.url, status || 'network error', error.response?.data || error.message)
     return Promise.reject(new Error(message))
   },
 )
