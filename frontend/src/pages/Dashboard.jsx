@@ -76,7 +76,7 @@ const FERRAMENTAS = [
     tempo: '3–5 min',
     Icon: IconChart,
     cor: '#0ea5e9',
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     slug: 'labor-risk',
