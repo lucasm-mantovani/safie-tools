@@ -62,7 +62,7 @@ export default function AvatarUpload({ currentUrl, onUpload }) {
       const blob = await getCroppedImg(imageSrc, croppedArea)
       const formData = new FormData()
       formData.append('avatar', blob, 'avatar.webp')
-      const { data } = await api.post('/profile/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const { data } = await api.post('/profile/avatar', formData)
       onUpload?.(data.avatar_url)
       await refreshProfile?.()
       setImageSrc(null)
