@@ -29,8 +29,8 @@ export default function Login() {
       setServerError('')
       await signIn(data.email, data.password)
       navigate('/dashboard')
-    } catch {
-      setServerError('E-mail ou senha incorretos. Verifique seus dados e tente novamente.')
+    } catch (err) {
+      setServerError(err.message || 'E-mail ou senha incorretos. Verifique seus dados e tente novamente.')
     }
   }
 

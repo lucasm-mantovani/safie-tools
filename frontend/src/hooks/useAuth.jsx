@@ -73,10 +73,15 @@ export function AuthProvider({ children }) {
         .eq('id', userId)
         .single()
 
-      if (error && error.code !== 'PGRST116') throw error
-      setProfile(data || null)
+      if (error) {
+        // PGRST116 = nenhuma linha encontrada: perfil genuinamente não existe
+        if (error.code === 'PGRST116') setProfile(null)
+        // Outros erros (rede, timeout): mantém o perfil atual para evitar redirect falso
+        return
+      }
+      setProfile(data)
     } catch {
-      setProfile(null)
+      // Erro de rede: mantém o perfil atual
     } finally {
       setProfileChecked(true)
     }
@@ -120,22 +125,24 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
-  // Cria perfil para usuários OAuth que não completaram o cadastro (fluxo legacy)
+  // Cria perfil para usuários OAuth que não completaram o cadastro
+  // Usa o backend (service role key) em vez do Supabase direto para evitar bloqueios de RLS e token refresh
   async function registerProfile(formData) {
     const { full_name, phone, company_name, business_segment } = formData
 
-    const { data: profileData, error } = await supabase
-      .from('profiles')
-      .insert({ id: user.id, full_name, email: user.email, phone, company_name, business_segment })
-      .select()
-      .single()
+    const { data } = await api.post('/auth/complete-profile', {
+      user_id: user.id,
+      full_name,
+      email: user.email,
+      phone,
+      company_name,
+      business_segment,
+    })
 
-    if (error) throw new Error(error.message)
-
-    setProfile(profileData)
+    setProfile(data.profile)
     setProfileChecked(true)
 
-    return profileData
+    return data.profile
   }
 
   // Logout global — invalida todas as sessões no servidor

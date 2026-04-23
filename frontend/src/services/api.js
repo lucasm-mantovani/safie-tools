@@ -12,6 +12,10 @@ export const api = axios.create({
 // Injeta token JWT em toda requisição
 // getSession com timeout de 5s para evitar bloqueio se o cliente Supabase estiver em estado inconsistente
 api.interceptors.request.use(async (config) => {
+  // FormData: remove Content-Type para o browser definir multipart/form-data com o boundary correto
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
   try {
     const session = await Promise.race([
       supabase.auth.getSession().then(({ data }) => data.session),
@@ -32,7 +36,12 @@ api.interceptors.response.use(
     const originalRequest = error.config
     const status = error.response?.status
 
-    if (status === 401 && !originalRequest._retry) {
+    // Endpoints de autenticação (login, registro) retornam 401 por credenciais erradas,
+    // não por sessão expirada — não redirecionar, apenas propagar o erro
+    const isAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
+                           originalRequest.url?.includes('/auth/register')
+
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
       // Tenta renovar o token uma vez antes de deslogar
