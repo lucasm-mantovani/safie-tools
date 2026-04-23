@@ -10,48 +10,52 @@ export default function AuthCallback() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    async function handleCallback() {
-      const type = searchParams.get('type')
+    const type = searchParams.get('type')
+    const accessToken = searchParams.get('access_token')
+    const refreshToken = searchParams.get('refresh_token')
 
-      // Tokens passados diretamente (fluxo backend OAuth callback)
-      const accessToken = searchParams.get('access_token')
-      const refreshToken = searchParams.get('refresh_token')
-
-      if (accessToken && refreshToken) {
-        const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-        if (sessionError) {
-          setError('Falha ao estabelecer sessão. Tente novamente.')
-          setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
-          return
-        }
-      }
-
-      const { data, error: sessionFetchError } = await supabase.auth.getSession()
-      const session = data?.session
-
-      if (sessionFetchError || !session) {
-        setError('Sessão não encontrada.')
-        setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
-        return
-      }
-
-      if (type === 'signup') {
-        // E-mail confirmado com sucesso
-        await refreshProfile?.()
-        setTimeout(() => navigate('/dashboard'), 2000)
-        return
-      }
-
-      if (type === 'recovery') {
-        navigate(`/reset-password?token=${session.access_token}`)
-        return
-      }
-
-      await refreshProfile?.()
-      navigate('/dashboard', { replace: true })
+    // Legacy: tokens passados diretamente na URL (email confirmation e recovery via backend)
+    if (accessToken && refreshToken) {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error: sessionError }) => {
+          if (sessionError) {
+            setError('Falha ao estabelecer sessão. Tente novamente.')
+            setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
+          }
+          // SIGNED_IN via onAuthStateChange abaixo redireciona
+        })
     }
 
-    handleCallback()
+    // PKCE: aguarda o Supabase completar a troca do code=... antes de redirecionar
+    let timeoutId
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        clearTimeout(timeoutId)
+        subscription.unsubscribe()
+        if (type === 'recovery') {
+          navigate(`/reset-password?token=${session.access_token}`, { replace: true })
+          return
+        }
+        await refreshProfile?.()
+        navigate('/dashboard', { replace: true })
+      }
+      if (event === 'PASSWORD_RECOVERY') {
+        clearTimeout(timeoutId)
+        subscription.unsubscribe()
+        navigate(`/reset-password?token=${session?.access_token}`, { replace: true })
+      }
+    })
+
+    timeoutId = setTimeout(() => {
+      subscription.unsubscribe()
+      setError('Tempo esgotado. Tente novamente.')
+      setTimeout(() => navigate('/login?error=oauth_failed'), 2000)
+    }, 20000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeoutId)
+    }
   }, [])
 
   return (

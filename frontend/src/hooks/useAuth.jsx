@@ -16,8 +16,32 @@ export function AuthProvider({ children }) {
   const needsProfileCompletion = !loading && profileChecked && user !== null && profile === null
 
   useEffect(() => {
+    let mounted = true
+
+    // Timeout de segurança: garante que loading resolve mesmo se Supabase travar
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        setLoading(false)
+        setProfileChecked(true)
+      }
+    }, 8000)
+
+    // Bootstrap: busca sessão imediatamente sem depender do listener
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
+      clearTimeout(timeoutId)
+      setUser(session?.user ?? null)
+      if (session?.user && !isRegistering.current) {
+        fetchProfile(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    })
+
+    // Listener: apenas para mudanças de estado após o bootstrap
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED') return
+      if (!mounted) return
+      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') return
 
       setUser(session?.user ?? null)
 
@@ -32,7 +56,11 @@ export function AuthProvider({ children }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      clearTimeout(timeoutId)
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function fetchProfile(userId) {
