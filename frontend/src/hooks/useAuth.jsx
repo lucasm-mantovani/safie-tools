@@ -87,15 +87,14 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Login via backend (registra tentativas, rate limit por e-mail)
+  // Login: backend valida credenciais e aplica rate limit; Supabase client armazena sessão nativamente
   async function signIn(email, password) {
-    const { data } = await api.post('/auth/login', { email, password })
+    // Valida credenciais e aplica rate limiting no backend
+    await api.post('/auth/login', { email, password })
 
-    // Seta sessão no cliente Supabase com os tokens retornados pelo backend
-    const { error } = await supabase.auth.setSession({
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-    })
+    // Faz login diretamente no Supabase para garantir que a sessão seja armazenada
+    // pelo mecanismo nativo (localStorage), evitando problemas com setSession + PKCE
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
 
     // Busca perfil imediatamente para evitar race condition entre navigate e o listener de auth
