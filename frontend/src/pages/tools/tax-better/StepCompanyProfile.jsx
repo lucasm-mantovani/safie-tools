@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTax } from './TaxContext'
 import Button from '../../../components/ui/Button'
 
@@ -39,11 +40,38 @@ const QUESTIONS = [
 
 export default function StepCompanyProfile() {
   const { companyProfile, updateCompanyProfile, goToStep } = useTax()
+  const [cnaeError, setCnaeError] = useState(null)
+  const [pendingAnswer, setPendingAnswer] = useState(null)
 
   const activeIdx = QUESTIONS.findIndex(q => !q.optional && !companyProfile[q.key])
   const currentIdx = activeIdx === -1 ? QUESTIONS.length - 1 : activeIdx
   const activeQ = QUESTIONS[currentIdx]
   const allRequiredDone = QUESTIONS.filter(q => !q.optional).every(q => companyProfile[q.key])
+
+  function handleCardClick(key, value) {
+    setPendingAnswer({ key, value })
+    setTimeout(() => {
+      updateCompanyProfile(key, value)
+      setPendingAnswer(null)
+    }, 200)
+  }
+
+  function isCardSelected(key, value) {
+    return companyProfile[key] === value || (pendingAnswer?.key === key && pendingAnswer?.value === value)
+  }
+
+  function handleCnaeBlur(e) {
+    const val = e.target.value.trim()
+    if (!val) {
+      setCnaeError(null)
+      return
+    }
+    if (!/^\d{4}-\d\/\d{2}$|^\d{7}$/.test(val)) {
+      setCnaeError('Formato inválido. Use o padrão 0000-0/00 (ex: 6201-5/01)')
+    } else {
+      setCnaeError(null)
+    }
+  }
 
   return (
     <div>
@@ -68,9 +96,9 @@ export default function StepCompanyProfile() {
             {activeQ.options.map(opt => (
               <button
                 key={opt.value}
-                onClick={() => updateCompanyProfile(activeQ.key, opt.value)}
+                onClick={() => handleCardClick(activeQ.key, opt.value)}
                 className={`text-left px-4 py-3 rounded-xl border font-body text-sm transition-all ${
-                  companyProfile[activeQ.key] === opt.value
+                  isCardSelected(activeQ.key, opt.value)
                     ? 'border-primary bg-primary/5 text-primary font-medium'
                     : 'border-gray-200 text-gray-700 hover:border-primary/40'
                 }`}
@@ -98,10 +126,14 @@ export default function StepCompanyProfile() {
               type="text"
               value={companyProfile[activeQ.key] || ''}
               onChange={e => updateCompanyProfile(activeQ.key, e.target.value)}
+              onBlur={handleCnaeBlur}
               placeholder="Ex: 6201-5/01"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className={`w-full px-4 py-2.5 rounded-lg border font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${cnaeError ? 'border-red-300' : 'border-gray-200'}`}
             />
-            <p className="font-body text-xs text-gray-400">Campo opcional — pule se não souber.</p>
+            {cnaeError && (
+              <p className="font-body text-xs text-red-500">{cnaeError}</p>
+            )}
+            {!cnaeError && <p className="font-body text-xs text-gray-400">Campo opcional — pule se não souber.</p>}
           </div>
         )}
       </div>

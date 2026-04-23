@@ -14,9 +14,23 @@ const REGIME_LABELS = {
 }
 
 export default function StepResults({ onReset }) {
-  const { results, qualificationData } = useTax()
+  const { results, qualificationData, goToStep } = useTax()
 
-  if (!results) return null
+  if (!results || !results.results?.recommended_regime) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <p className="font-body text-sm text-gray-500 mb-4">
+          Não foi possível carregar o resultado do diagnóstico.
+        </p>
+        <button
+          onClick={() => goToStep('SUPPLEMENTARY')}
+          className="font-cta text-sm text-primary hover:underline"
+        >
+          Voltar
+        </button>
+      </div>
+    )
+  }
 
   const { results: regimeResults, levers, health_score } = results
   const { recommended_regime, annual_savings_potential, growth_scenarios, ranking } = regimeResults
@@ -149,12 +163,20 @@ export default function StepResults({ onReset }) {
         annualSavings={annual_savings_potential}
       />
 
+      <p className="font-body text-xs text-gray-500 text-center mt-4 px-4">
+        Reforma Tributária: a partir de 2026, IBS e CBS iniciam substituição gradual do PIS/COFINS e ISS. Acompanhe os impactos com seu contador.
+      </p>
+
       <button
         onClick={onReset}
         className="w-full font-cta text-sm text-gray-400 hover:text-primary transition-colors py-3 mt-2"
       >
         Fazer novo diagnóstico
       </button>
+
+      <p className="font-body text-xs text-gray-400 text-center mt-4">
+        Alíquotas baseadas na legislação vigente em 2025. Legislação tributária pode ser alterada — valide com seu contador.
+      </p>
     </div>
   )
 }

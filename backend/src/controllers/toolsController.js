@@ -466,13 +466,14 @@ export async function calculateLitigationCost(req, res, next) {
 
 // ── Partners Cash ─────────────────────────────────────────────────────────────
 
+// Portaria MPS nº 1.716/2024 - vigência jan/2025
 function calcINSS(prolabore) {
-  const teto = 7786.02
+  const teto = 8157.41
   const base = Math.min(prolabore, teto)
-  if (base <= 1412) return base * 0.075
-  if (base <= 2666.68) return 1412 * 0.075 + (base - 1412) * 0.09
-  if (base <= 4000.03) return 1412 * 0.075 + (2666.68 - 1412) * 0.09 + (base - 2666.68) * 0.12
-  return 1412 * 0.075 + (2666.68 - 1412) * 0.09 + (4000.03 - 2666.68) * 0.12 + (base - 4000.03) * 0.14
+  if (base <= 1518.00) return base * 0.075
+  if (base <= 2793.88) return 1518.00 * 0.075 + (base - 1518.00) * 0.09
+  if (base <= 4190.83) return 1518.00 * 0.075 + (2793.88 - 1518.00) * 0.09 + (base - 2793.88) * 0.12
+  return 1518.00 * 0.075 + (2793.88 - 1518.00) * 0.09 + (4190.83 - 2793.88) * 0.12 + (base - 4190.83) * 0.14
 }
 
 function calcIR(base) {

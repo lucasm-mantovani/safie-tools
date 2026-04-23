@@ -116,11 +116,20 @@ export default function QualificationModal() {
         qualification_data: answers,
       }
 
-      const { data } = await api.post('/tools/tax-diagnostic/session', payload)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 30000)
+      )
+      const request = api.post('/tools/tax-diagnostic/session', payload)
+      const { data } = await Promise.race([request, timeout])
       setQualificationData(answers)
       setResults(data.result, data.session_id)
     } catch (err) {
-      setError(err.message || 'Erro ao processar diagnóstico. Tente novamente.')
+      if (err.message === 'TIMEOUT') {
+        setError('Não foi possível gerar seu diagnóstico. Verifique sua conexão e tente novamente.')
+      } else {
+        setError(err.message || 'Erro ao processar diagnóstico. Tente novamente.')
+      }
+    } finally {
       setSubmitting(false)
     }
   }
@@ -128,6 +137,9 @@ export default function QualificationModal() {
   return (
     <div className="fixed inset-0 bg-bg-dark/80 backdrop-blur-sm z-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
+        <p className="font-body text-sm text-gray-500 mb-4">
+          Antes de mostrar seu resultado, queremos entender como podemos ajudar:
+        </p>
         <div className="flex gap-1.5 mb-8">
           {QUESTIONS.map((_, i) => (
             <div

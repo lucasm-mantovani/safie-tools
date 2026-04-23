@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTax } from './TaxContext'
 import Button from '../../../components/ui/Button'
 
@@ -38,6 +39,8 @@ export default function StepRevenueData() {
   const { revenueData, updateRevenueData, goToStep } = useTax()
   const { monthly_revenue, services_revenue_pct, has_seasonal_revenue, has_export_revenue, has_financial_revenue } = revenueData
   const products_pct = 100 - (services_revenue_pct ?? 100)
+  const [revenueHint, setRevenueHint] = useState(null)
+  const [touched, setTouched] = useState(false)
 
   const canAdvance = parseBRL(monthly_revenue) > 0
     && has_seasonal_revenue !== null
@@ -45,7 +48,19 @@ export default function StepRevenueData() {
     && has_financial_revenue !== null
 
   function handleRevenue(e) {
+    if (e.target.value.includes('-')) {
+      setRevenueHint('Insira apenas valores positivos')
+    } else {
+      setRevenueHint(null)
+    }
     updateRevenueData('monthly_revenue', maskBRL(e.target.value))
+  }
+
+  function handleRevenueBlur() {
+    setTouched(true)
+    if (parseBRL(monthly_revenue) === 0) {
+      setRevenueHint('Informe o faturamento mensal bruto da empresa')
+    }
   }
 
   function handleServicesSlider(e) {
@@ -66,10 +81,21 @@ export default function StepRevenueData() {
               inputMode="numeric"
               value={monthly_revenue}
               onChange={handleRevenue}
+              onBlur={handleRevenueBlur}
               placeholder="0,00"
               className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </div>
+          {revenueHint && (
+            <p className="font-body text-xs text-amber-600 mt-1">{revenueHint}</p>
+          )}
+          {parseBRL(monthly_revenue) * 12 > 3840000 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mt-2">
+              <p className="font-body text-xs text-amber-700">
+                Sua empresa está próxima do limite do Simples Nacional (R$ 4,8M/ano). A análise de regime é especialmente importante para você.
+              </p>
+            </div>
+          )}
         </div>
 
         <div>

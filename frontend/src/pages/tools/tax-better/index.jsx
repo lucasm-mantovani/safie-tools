@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { TaxProvider, useTax } from './TaxContext'
+import TaxErrorBoundary from './TaxErrorBoundary'
 import StepIntro from './StepIntro'
 import StepCompanyProfile from './StepCompanyProfile'
 import StepRevenueData from './StepRevenueData'
@@ -55,8 +56,10 @@ function TaxFlow() {
   const isQualification = currentStep === 'QUALIFICATION_MODAL'
   const isIntro = currentStep === 'INTRO'
 
+  const showDisclaimer = !isIntro && !isResults && !isQualification
+
   return (
-    <div className="min-h-screen bg-safie-light">
+    <div className="relative min-h-screen bg-safie-light">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {!isResults && (
           <div className="mb-10">
@@ -92,6 +95,12 @@ function TaxFlow() {
         {currentStep === 'RESULTS' && <StepResults onReset={() => { resetAll(); navigate('/dashboard') }} />}
 
         {isQualification && <QualificationModal />}
+
+        {showDisclaimer && (
+          <p className="font-body text-xs text-gray-400 text-center mt-6">
+            Estimativa informativa — não substitui consultoria contábil
+          </p>
+        )}
       </div>
     </div>
   )
@@ -99,8 +108,10 @@ function TaxFlow() {
 
 export default function TaxBetter() {
   return (
-    <TaxProvider>
-      <TaxFlow />
-    </TaxProvider>
+    <TaxErrorBoundary>
+      <TaxProvider>
+        <TaxFlow />
+      </TaxProvider>
+    </TaxErrorBoundary>
   )
 }

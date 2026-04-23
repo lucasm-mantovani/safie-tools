@@ -94,9 +94,23 @@ export function TaxProvider({ children }) {
       const saved = localStorage.getItem(LS_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (parsed.currentStep && parsed.currentStep !== 'RESULTS') return parsed
+        if (!parsed.currentStep || !parsed.companyProfile) {
+          localStorage.removeItem(LS_KEY)
+          return makeInitialState()
+        }
+        if (parsed.currentStep === 'RESULTS') return makeInitialState()
+        if (
+          parsed.currentStep === 'QUALIFICATION_MODAL' &&
+          parsed.sessionId === null &&
+          parsed.results === null
+        ) {
+          return { ...parsed, currentStep: 'SUPPLEMENTARY' }
+        }
+        return parsed
       }
-    } catch {}
+    } catch {
+      localStorage.removeItem(LS_KEY)
+    }
     return makeInitialState()
   })
 

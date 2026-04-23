@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTax } from './TaxContext'
 import Button from '../../../components/ui/Button'
 
@@ -33,18 +34,27 @@ function YesNoField({ label, value, onChange }) {
 
 export default function StepSupplementary() {
   const { supplementaryData, updateSupplementary, goToStep } = useTax()
-  const { has_accountant, last_regime_review, has_rd_investment, has_export_revenue, has_real_estate, iss_rate } = supplementaryData
+  const { last_regime_review, has_rd_investment, has_export_revenue, has_real_estate, iss_rate } = supplementaryData
+  const [issError, setIssError] = useState(null)
 
-  const canAdvance = has_accountant !== null && last_regime_review !== null
+  const canAdvance = last_regime_review !== null && issError === null
+
+  function handleIssBlur() {
+    if (!iss_rate || iss_rate.trim() === '') {
+      setIssError(null)
+      return
+    }
+    const val = parseFloat(String(iss_rate).replace(',', '.'))
+    if (isNaN(val) || val < 2 || val > 5) {
+      setIssError('A alíquota de ISS deve estar entre 2% e 5% conforme Lei Complementar 116/2003')
+    } else {
+      setIssError(null)
+    }
+  }
 
   return (
     <div>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <YesNoField
-          label="A empresa tem contador dedicado?"
-          value={has_accountant}
-          onChange={v => updateSupplementary('has_accountant', v)}
-        />
         <YesNoField
           label="Investe em pesquisa e desenvolvimento (P&D)?"
           value={has_rd_investment}
@@ -86,15 +96,19 @@ export default function StepSupplementary() {
           <label className="font-body text-sm font-medium text-gray-700 block mb-0.5">
             Alíquota do ISS no município (%) — opcional
           </label>
-          <p className="font-body text-xs text-gray-400 mb-2">Normalmente entre 2% e 5%. Pule se não souber.</p>
+          <p className="font-body text-xs text-gray-400 mb-2">Se não souber, usaremos 2% como padrão</p>
           <input
             type="text"
             inputMode="decimal"
             value={iss_rate}
             onChange={e => updateSupplementary('iss_rate', e.target.value.replace(/[^0-9,.]/g, ''))}
+            onBlur={handleIssBlur}
             placeholder="Ex: 3,00"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            className={`w-full px-4 py-2.5 rounded-lg border font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${issError ? 'border-red-300' : 'border-gray-200'}`}
           />
+          {issError && (
+            <p className="font-body text-xs text-red-500 mt-1">{issError}</p>
+          )}
         </div>
       </div>
 
