@@ -7,12 +7,14 @@ import {
   calculateLitigationCost, calculatePartnersCash,
   createTaxDiagnosticSession, getTaxDiagnosticSession,
   getTaxDiagnosticSessionsByUser, getTaxDiagnosticBenchmark,
+  createDueDiligenceSession, getDueDiligenceSession, getDueDiligenceSessionsByUser,
 } from '../controllers/toolsController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
 import {
   validate, equitySessionSchema, equityInviteSchema,
   taxBetterSchema, laborRiskSchema, fastDueDiligenceSchema,
   litigationCostSchema, partnersCashSchema, taxDiagnosticSchema,
+  dueDiligenceSessionSchema,
 } from '../utils/validators.js'
 
 const router = Router()
@@ -39,8 +41,13 @@ router.get('/tax-diagnostic/benchmark', authMiddleware, getTaxDiagnosticBenchmar
 // POST /api/tools/labor-risk — avalia risco trabalhista de contratos PJ
 router.post('/labor-risk', authMiddleware, validate(laborRiskSchema), calculateLaborRisk)
 
-// POST /api/tools/fast-due-diligence
+// POST /api/tools/fast-due-diligence (legado — mantido para compatibilidade)
 router.post('/fast-due-diligence', authMiddleware, validate(fastDueDiligenceSchema), calculateFastDueDiligence)
+
+// Due Diligence Checklist — rotas completas
+router.post('/due-diligence/session', authMiddleware, validate(dueDiligenceSessionSchema), createDueDiligenceSession)
+router.get('/due-diligence/sessions', authMiddleware, getDueDiligenceSessionsByUser)
+router.get('/due-diligence/session/:id', authMiddleware, getDueDiligenceSession)
 
 // POST /api/tools/litigation-cost
 router.post('/litigation-cost', authMiddleware, validate(litigationCostSchema), calculateLitigationCost)

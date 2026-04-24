@@ -1,234 +1,176 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../../../services/api'
-import Button from '../../../components/ui/Button'
-import { generatePdfFromData } from '../../../utils/pdfGenerator'
+import { useAuth } from '../../../hooks/useAuth'
+import { DDProvider, useDD } from './DDContext'
+import DDErrorBoundary from './DDErrorBoundary'
+import StepIntro from './StepIntro'
+import StepCompanySnapshot from './StepCompanySnapshot'
+import StepChecklist from './StepChecklist'
+import QualificationModal from './QualificationModal'
+import StepResults from './StepResults'
 
-const OPERATION_OPTIONS = [
-  { value: 'captacao', label: 'Captação de investimento' },
-  { value: 'ma', label: 'Fusão e aquisição (M&A)' },
-  { value: 'venda_participacao', label: 'Venda de participação societária' },
-]
-const TIMELINE_OPTIONS = [
-  { value: 'ate_3', label: 'Até 3 meses' },
-  { value: '3_a_6', label: '3 a 6 meses' },
-  { value: '6_a_12', label: '6 a 12 meses' },
-  { value: 'acima_12', label: 'Mais de 12 meses' },
-]
-const SIZE_OPTIONS = [
-  { value: 'micro', label: 'Micro (até R$360k/ano)' },
-  { value: 'pequena', label: 'Pequena (até R$4,8M/ano)' },
-  { value: 'media', label: 'Média (até R$78M/ano)' },
-  { value: 'grande', label: 'Grande (acima de R$78M/ano)' },
-]
+const CHECKLIST_STEPS = ['COMPANY_SNAPSHOT', 'CHECKLIST']
+const STEP_LABELS = ['Empresa', 'Checklist']
 
-const AREA_ICONS = {
-  societario: '⚖️', fiscal: '📊', trabalhista: '👷', propriedade_intelectual: '💡',
-  compliance: '🛡️', contratos: '📋', financeiro: '💰',
+function StepIndicator({ currentStep }) {
+  const current = CHECKLIST_STEPS.indexOf(currentStep)
+  if (current === -1) return null
+  return (
+    <div className="flex items-center gap-1 mb-8">
+      {CHECKLIST_STEPS.map((_, i) => {
+        const done = i < current
+        const active = i === current
+        return (
+          <div key={i} className="flex items-center gap-1">
+            <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold transition-colors
+              ${done || active ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
+              {done
+                ? <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                : i + 1}
+            </div>
+            <span className={`font-cta text-xs font-medium hidden sm:block ${active ? 'text-bg-dark' : 'text-gray-400'}`}>
+              {STEP_LABELS[i]}
+            </span>
+            {i < CHECKLIST_STEPS.length - 1 && <div className="w-4 h-px bg-gray-200 mx-1" />}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
-const PRIORITY_CONFIG = {
-  alta: { label: 'Prioridade Alta', badge: 'bg-red-100 text-red-700' },
-  media: { label: 'Prioridade Média', badge: 'bg-amber-100 text-amber-700' },
-  baixa: { label: 'Prioridade Baixa', badge: 'bg-gray-100 text-gray-500' },
-}
-
-export default function FastDueDiligence() {
-  const navigate = useNavigate()
-  const [form, setForm] = useState({
-    operation_type: '', timeline_months: '', has_legal_advisor: null,
-    company_size: '', has_shareholders_agreement: null,
-  })
-  const [result, setResult] = useState(null)
-  const [checked, setChecked] = useState({})
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-
-  const canSubmit = form.operation_type && form.timeline_months && form.has_legal_advisor !== null
-    && form.company_size && form.has_shareholders_agreement !== null
-
-  function set(field, value) { setForm(p => ({ ...p, [field]: value })) }
-
-  async function handleSubmit() {
-    setLoading(true); setError(null)
-    try {
-      const { data } = await api.post('/tools/fast-due-diligence', form)
-      setResult(data)
-      // inicializa checkboxes como false
-      const init = {}
-      data.result.areas.forEach(a => a.items.forEach(i => { init[i.id] = false }))
-      setChecked(init)
-    } catch (err) { setError(err.message) }
-    finally { setLoading(false) }
-  }
-
-  function toggleCheck(id) { setChecked(p => ({ ...p, [id]: !p[id] })) }
-
-  function handleExportPDF() {
-    if (!result) return
-    const r = result.result
-    const sections = [
-      { label: 'Tipo de operação', value: OPERATION_OPTIONS.find(o => o.value === r.operation_type)?.label || r.operation_type },
-      { label: 'Total de itens', value: String(r.total_items) },
-      { label: 'Itens de alta prioridade', value: String(r.high_priority) },
-      ...r.areas.flatMap(a => a.items.map(i => ({
-        label: `[${a.label}] ${i.title}`,
-        value: checked[i.id] ? 'Concluído' : 'Pendente',
-      }))),
-    ]
-    generatePdfFromData({ title: 'Fast Due Diligence — Checklist', sections, fileName: 'fast-due-diligence-safie' })
-  }
-
-  if (result) {
-    const r = result.result
-    const totalChecked = Object.values(checked).filter(Boolean).length
-    const progress = Math.round((totalChecked / r.total_items) * 100)
-
-    return (
-      <div className="min-h-screen bg-safie-light">
-        <div className="max-w-3xl mx-auto px-6 py-12">
-          <div className="mb-8">
-            <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1.5 font-cta text-sm text-gray-400 hover:text-primary transition-colors mb-6">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-              Dashboard
-            </button>
-            <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">Ferramenta 4 de 6</p>
-            <h1 className="font-heading text-3xl font-bold text-bg-dark mb-2">Fast Due Diligence</h1>
-          </div>
-
-          {/* Progresso */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-cta text-sm font-semibold text-gray-700">{totalChecked} de {r.total_items} itens concluídos</p>
-              <div className="flex items-center gap-3">
-                <span className="font-cta text-sm font-bold text-primary">{progress}%</span>
-                <button onClick={handleExportPDF} className="flex items-center gap-1 font-cta text-xs font-semibold text-primary hover:text-secondary transition-colors">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
-                  PDF
-                </button>
-              </div>
-            </div>
-            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          {/* Alertas */}
-          {r.tight_timeline && !r.has_legal_advisor && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex gap-3">
-              <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
-              <div>
-                <p className="font-cta text-sm font-semibold text-amber-800 mb-0.5">Prazo curto sem assessor jurídico</p>
-                <p className="font-body text-xs text-amber-700">Operações com prazo inferior a 6 meses sem assessoria jurídica têm alto risco de problemas não detectados.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Checklist por área */}
-          <div className="flex flex-col gap-5 mb-6">
-            {r.areas.map((area) => (
-              <div key={area.area} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-heading text-base font-bold text-bg-dark">{area.label}</h3>
-                  <span className="font-cta text-xs text-gray-400">{area.estimated_weeks} sem. estimadas</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {area.items.map((item) => (
-                    <label key={item.id} className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${checked[item.id] ? 'bg-primary/5' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                      <input
-                        type="checkbox"
-                        checked={!!checked[item.id]}
-                        onChange={() => toggleCheck(item.id)}
-                        className="mt-0.5 accent-primary w-4 h-4 shrink-0"
-                      />
-                      <div className="flex-1">
-                        <p className={`font-body text-sm leading-snug ${checked[item.id] ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
-                          {item.title}
-                        </p>
-                      </div>
-                      <span className={`font-cta text-xs px-2 py-0.5 rounded-full shrink-0 ${PRIORITY_CONFIG[item.priority].badge}`}>
-                        {item.priority}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="bg-bg-dark rounded-2xl p-6 mb-6 text-white">
-            <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">Próximo passo</p>
-            <h3 className="font-heading text-lg font-bold mb-2">Não enfrente uma due diligence sem assessoria</h3>
-            <p className="font-body text-sm text-gray-400 leading-relaxed mb-5">A SAFIE coordena processos de due diligence completos — jurídico, fiscal e societário — para operações de captação, M&A e venda de participação.</p>
-            <a href="https://safie.com.br" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary hover:text-bg-dark transition-colors px-5 py-2.5 rounded-lg">
-              Falar com a SAFIE
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-            </a>
-          </div>
-          <button onClick={() => setResult(null)} className="w-full font-cta text-sm text-gray-400 hover:text-primary transition-colors py-2">Gerar novo checklist</button>
+function ResumePrompt({ onResume, onRestart }) {
+  return (
+    <div className="min-h-screen bg-safie-light flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="font-heading text-xl font-bold text-bg-dark mb-2">Diagnóstico em andamento</h2>
+        <p className="font-body text-sm text-gray-500 mb-6">
+          Encontramos um diagnóstico salvo. Deseja continuar de onde parou?
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onResume}
+            className="w-full font-cta text-sm font-semibold text-white bg-primary hover:bg-secondary hover:text-bg-dark transition-colors px-5 py-3 rounded-xl"
+          >
+            Continuar de onde parei
+          </button>
+          <button
+            onClick={onRestart}
+            className="w-full font-cta text-sm text-gray-400 hover:text-primary transition-colors py-2"
+          >
+            Começar um novo diagnóstico
+          </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function DDFlow() {
+  const navigate = useNavigate()
+  const { currentStep, operationType, goToStep, resetAll } = useDD()
+  const [showResume] = useState(() => {
+    try {
+      const saved = localStorage.getItem('safie_dd_draft')
+      if (!saved) return false
+      const parsed = JSON.parse(saved)
+      return !!(parsed.currentStep && parsed.currentStep !== 'INTRO' && parsed.currentStep !== 'RESULTS')
+    } catch { return false }
+  })
+  const [resumeDismissed, setResumeDismissed] = useState(false)
+
+  if (showResume && !resumeDismissed) {
+    return (
+      <ResumePrompt
+        onResume={() => setResumeDismissed(true)}
+        onRestart={() => { resetAll(); setResumeDismissed(true) }}
+      />
     )
   }
 
-  return (
-    <div className="min-h-screen bg-safie-light">
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <div className="mb-10">
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1.5 font-cta text-sm text-gray-400 hover:text-primary transition-colors mb-6">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-            Dashboard
-          </button>
-          <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">Ferramenta 4 de 6</p>
-          <h1 className="font-heading text-3xl font-bold text-bg-dark mb-2">Fast Due Diligence</h1>
-          <p className="font-body text-sm text-gray-500">Checklist personalizado para captação, M&A ou venda de participação.</p>
-        </div>
+  const isResults = currentStep === 'RESULTS'
+  const isIntro = currentStep === 'INTRO'
+  const isQualification = currentStep === 'QUALIFICATION_MODAL'
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-          <h2 className="font-heading text-lg font-bold text-bg-dark mb-6">Sobre a operação</h2>
-          <div className="flex flex-col gap-5">
-            <SelectField label="Tipo de operação" value={form.operation_type} onChange={v => set('operation_type', v)} options={OPERATION_OPTIONS} placeholder="Selecione..." />
-            <SelectField label="Prazo estimado da operação" value={form.timeline_months} onChange={v => set('timeline_months', v)} options={TIMELINE_OPTIONS} placeholder="Selecione..." />
-            <SelectField label="Porte da empresa" value={form.company_size} onChange={v => set('company_size', v)} options={SIZE_OPTIONS} placeholder="Selecione..." />
-            <YesNoField label="Já possui assessor jurídico para a operação?" value={form.has_legal_advisor} onChange={v => set('has_legal_advisor', v)} />
-            <YesNoField label="A empresa possui Acordo de Sócios vigente?" value={form.has_shareholders_agreement} onChange={v => set('has_shareholders_agreement', v)} />
+  function handleBack() {
+    if (isIntro) return navigate('/dashboard')
+    if (currentStep === 'COMPANY_SNAPSHOT') return goToStep('INTRO')
+    if (currentStep === 'CHECKLIST') return goToStep('COMPANY_SNAPSHOT')
+    navigate('/dashboard')
+  }
+
+  return (
+    <div className="relative min-h-screen bg-safie-light">
+      <div className={`mx-auto px-4 sm:px-6 py-8 sm:py-12 ${currentStep === 'CHECKLIST' ? 'max-w-5xl' : 'max-w-3xl'}`}>
+        {!isResults && (
+          <div className="mb-8">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1.5 font-cta text-sm text-gray-400 hover:text-primary transition-colors mb-6"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              {isIntro ? 'Dashboard' : 'Voltar'}
+            </button>
+
+            {!isQualification && (
+              <>
+                <p className="font-cta text-xs font-semibold text-primary uppercase tracking-widest mb-2">
+                  Ferramenta 4 de 6
+                </p>
+                <h1 className="font-heading text-2xl sm:text-3xl font-bold text-bg-dark mb-2">
+                  Fast Due Diligence
+                </h1>
+                {!isIntro && (
+                  <p className="font-body text-sm text-gray-500">
+                    Diagnóstico de prontidão para{' '}
+                    {operationType === 'captacao' ? 'captação de investimento' : 'operação de M&A'}.
+                  </p>
+                )}
+              </>
+            )}
           </div>
-        </div>
+        )}
 
-        {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4"><p className="font-body text-sm text-red-600">{error}</p></div>}
+        {!isResults && !isQualification && !isIntro && (
+          <StepIndicator currentStep={currentStep} />
+        )}
 
-        <Button variant="primary" size="md" onClick={handleSubmit} disabled={!canSubmit || loading} className="w-full">
-          {loading ? 'Gerando checklist...' : 'Gerar checklist personalizado →'}
-        </Button>
+        {currentStep === 'INTRO' && <StepIntro />}
+        {currentStep === 'COMPANY_SNAPSHOT' && <StepCompanySnapshot />}
+        {currentStep === 'CHECKLIST' && <StepChecklist />}
+        {currentStep === 'RESULTS' && (
+          <StepResults onReset={() => { resetAll(); navigate('/dashboard') }} />
+        )}
+        {isQualification && <QualificationModal />}
+
+        {!isResults && !isIntro && !isQualification && (
+          <p className="font-body text-xs text-gray-400 text-center mt-6">
+            Diagnóstico informativo — não substitui assessoria jurídica ou financeira especializada
+          </p>
+        )}
       </div>
     </div>
   )
 }
 
-function SelectField({ label, value, onChange, options, placeholder }) {
-  return (
-    <div>
-      <label className="font-body text-sm font-medium text-gray-700 block mb-1.5">{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 font-body text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors bg-white">
-        <option value="">{placeholder}</option>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </div>
-  )
-}
+export default function FastDueDiligence() {
+  const { profile } = useAuth()
 
-function YesNoField({ label, value, onChange }) {
   return (
-    <div>
-      <label className="font-body text-sm font-medium text-gray-700 block mb-2">{label}</label>
-      <div className="flex gap-3">
-        {[{ v: true, l: 'Sim' }, { v: false, l: 'Não' }].map(opt => (
-          <button key={String(opt.v)} onClick={() => onChange(opt.v)} className={`flex-1 py-2.5 rounded-xl border font-cta text-sm font-semibold transition-all ${value === opt.v ? 'bg-primary text-white border-primary' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/30'}`}>
-            {opt.l}
-          </button>
-        ))}
-      </div>
-    </div>
+    <DDErrorBoundary>
+      <DDProvider
+        initialCompanyName={profile?.company_name || ''}
+        initialSegment={profile?.business_segment || ''}
+      >
+        <DDFlow />
+      </DDProvider>
+    </DDErrorBoundary>
   )
 }

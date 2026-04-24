@@ -7,6 +7,8 @@ import { generateAlerts } from '../services/alertService.js'
 import { runFullCalculation } from '../services/taxCalculatorService.js'
 import { generateLevers } from '../services/taxLeverService.js'
 import { calculateHealthScore } from '../services/healthScoreService.js'
+import { generateDiagnostic } from '../services/ddDiagnosticService.js'
+import { hubspotService } from '../services/hubspotService.js'
 
 export async function listTools(req, res, next) {
   try {
@@ -715,6 +717,85 @@ export async function getTaxDiagnosticSessionsByUser(req, res, next) {
     const { data, error } = await supabaseAdmin
       .from('tool_sessions').select('*')
       .eq('user_id', req.user.id).eq('tool_slug', 'tax-regime-diagnostic')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    res.json({ sessions: data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ── Due Diligence Checklist ───────────────────────────────────────────────────
+
+const syncHubspotDDAsync = (fn) => fn().catch(err => console.warn('[HubSpot DD]', err.message))
+
+export async function createDueDiligenceSession(req, res, next) {
+  try {
+    const { operation_type, company_snapshot, checklist_responses, qualification_data } = req.body
+
+    const diagnostic = generateDiagnostic(checklist_responses, operation_type, company_snapshot)
+
+    const dd_sql_tag =
+      diagnostic.red_flags.length >= 3 ||
+      (diagnostic.red_flags.length >= 1 && company_snapshot.has_legal_advisor === 'nao') ||
+      diagnostic.overall_readiness < 60
+
+    const qual = {
+      dd_operation_type: operation_type,
+      dd_overall_readiness_score: String(diagnostic.overall_readiness),
+      dd_red_flags_count: String(diagnostic.red_flags.length),
+      dd_yellow_flags_count: String(diagnostic.yellow_flags.length),
+      dd_has_legal_advisor: company_snapshot.has_legal_advisor || '',
+      dd_timeline_months: qualification_data.timeline_preference || '',
+      dd_sql_tag,
+      ...qualification_data,
+    }
+
+    const session = await supabaseService.createToolSession({
+      userId: req.user.id,
+      toolSlug: 'due-diligence-checklist',
+      inputData: { operation_type, company_snapshot, checklist_responses },
+      outputData: diagnostic,
+      qualificationData: qual,
+    })
+
+    const profile = await supabaseService.getProfileById(req.user.id)
+    if (profile?.hubspot_contact_id) {
+      syncHubspotDDAsync(() => hubspotService.updateContact(profile.hubspot_contact_id, {
+        dd_operation_type: operation_type,
+        dd_overall_readiness_score: String(diagnostic.overall_readiness),
+        dd_red_flags_count: String(diagnostic.red_flags.length),
+        dd_yellow_flags_count: String(diagnostic.yellow_flags.length),
+        dd_has_legal_advisor: company_snapshot.has_legal_advisor || '',
+        dd_timeline_months: qualification_data.timeline_preference || '',
+        dd_sql_tag: String(dd_sql_tag),
+      }))
+    }
+
+    res.status(201).json({ result: diagnostic, qualification_data: qual, session_id: session.id })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getDueDiligenceSession(req, res, next) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('tool_sessions').select('*')
+      .eq('id', req.params.id).eq('tool_slug', 'due-diligence-checklist').single()
+    if (error) throw error
+    if (data.user_id !== req.user.id) return res.status(403).json({ message: 'Acesso negado' })
+    res.json({ session: data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getDueDiligenceSessionsByUser(req, res, next) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('tool_sessions').select('*')
+      .eq('user_id', req.user.id).eq('tool_slug', 'due-diligence-checklist')
       .order('created_at', { ascending: false })
     if (error) throw error
     res.json({ sessions: data })

@@ -212,6 +212,29 @@ export const equityInviteSchema = z.object({
   partner_index: z.number().int().min(0),
 })
 
+// Due Diligence Checklist
+const checklistResponseSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(['ok', 'parcial', 'ausente', 'nao_aplicavel']),
+  founder_description: z.string().max(300).optional(),
+})
+
+export const dueDiligenceSessionSchema = z.object({
+  operation_type: z.enum(['captacao', 'ma']),
+  company_snapshot: z.object({
+    company_name: z.string().min(1),
+    founding_year: z.number().int().min(1900).max(2030).optional(),
+    business_segment: z.string().optional(),
+    current_stage: z.string().optional(),
+    monthly_revenue_range: z.string().optional(),
+    employees_count_range: z.string().optional(),
+    has_previous_funding: z.boolean().optional(),
+    has_legal_advisor: z.enum(['sim', 'nao', 'buscando']).optional(),
+  }),
+  checklist_responses: z.array(checklistResponseSchema).min(1),
+  qualification_data: z.record(z.unknown()).default({}),
+})
+
 // Middleware de validação reutilizável
 export function validate(schema) {
   return (req, res, next) => {
