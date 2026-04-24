@@ -36,8 +36,8 @@ function PublicOnlyRoute({ children }) {
 
 // Guard específico para OAuth: redireciona quem tem perfil para fora do /completar-perfil
 function CompleteProfileRoute({ children }) {
-  const { user, loading, needsProfileCompletion } = useAuth()
-  if (loading) return <LoadingScreen />
+  const { user, loading, profileChecked, needsProfileCompletion } = useAuth()
+  if (loading || !profileChecked) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (!needsProfileCompletion) return <Navigate to="/dashboard" replace />
   return children

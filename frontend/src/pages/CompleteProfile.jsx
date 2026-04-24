@@ -7,7 +7,7 @@ import Input from '../components/ui/Input'
 import Card from '../components/ui/Card'
 
 export default function CompleteProfile() {
-  const { user, registerProfile } = useAuth()
+  const { user, registerProfile, signOut } = useAuth()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState('')
 
@@ -117,6 +117,15 @@ export default function CompleteProfile() {
             </Button>
           </form>
         </Card>
+
+        <div className="text-center mt-4">
+          <button
+            onClick={signOut}
+            className="font-cta text-xs text-gray-400 hover:text-primary transition-colors"
+          >
+            Sair da conta
+          </button>
+        </div>
       </div>
     </div>
   )

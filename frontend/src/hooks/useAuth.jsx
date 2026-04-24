@@ -19,10 +19,10 @@ export function AuthProvider({ children }) {
     let mounted = true
 
     // Timeout de segurança: garante que loading resolve mesmo se Supabase travar
+    // Não chama setProfileChecked(true) — se o fetch falhou, não redirecionar para completar-perfil
     const timeoutId = setTimeout(() => {
       if (mounted) {
         setLoading(false)
-        setProfileChecked(true)
       }
     }, 8000)
 
@@ -74,16 +74,19 @@ export function AuthProvider({ children }) {
         .single()
 
       if (error) {
-        // PGRST116 = nenhuma linha encontrada: perfil genuinamente não existe
-        if (error.code === 'PGRST116') setProfile(null)
-        // Outros erros (rede, timeout): mantém o perfil atual para evitar redirect falso
+        if (error.code === 'PGRST116') {
+          // Perfil genuinamente não existe — confirmar para acionar o redirect correto
+          setProfile(null)
+          setProfileChecked(true)
+        }
+        // Outros erros (rede, permissão, etc.): não altera estado
+        // profileChecked fica false → needsProfileCompletion fica false → sem redirect falso
         return
       }
       setProfile(data)
-    } catch {
-      // Erro de rede: mantém o perfil atual
-    } finally {
       setProfileChecked(true)
+    } catch {
+      // Erro de rede: não altera estado → sem redirect falso para completar-perfil
     }
   }
 
