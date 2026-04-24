@@ -120,30 +120,6 @@ const FERRAMENTAS = [
   },
 ]
 
-// Banner para completar perfil (aparece quando não há empresa cadastrada)
-function ProfileCompletionBanner({ onComplete }) {
-  return (
-    <div className="bg-primary/5 border border-primary/15 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
-          <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        </div>
-        <div>
-          <p className="font-cta text-sm font-semibold text-bg-dark">Complete seu perfil</p>
-          <p className="font-body text-xs text-gray-500 mt-0.5">
-            Adicione os dados da sua empresa para personalizar os diagnósticos.
-          </p>
-        </div>
-      </div>
-      <Button variant="outline" size="sm" onClick={onComplete} className="shrink-0">
-        Completar agora
-      </Button>
-    </div>
-  )
-}
-
 // Saudação baseada no horário
 function getGreeting() {
   const hour = new Date().getHours()
@@ -203,11 +179,6 @@ export default function Dashboard() {
 
       {/* ── CONTEÚDO ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-
-        {/* Banner de perfil incompleto */}
-        {!hasCompany && (
-          <ProfileCompletionBanner onComplete={() => navigate('/completar-perfil')} />
-        )}
 
         {/* Estado vazio: primeira visita */}
         <FirstVisitBanner />

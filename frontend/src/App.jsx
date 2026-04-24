@@ -1,11 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import PageWrapper from './components/layout/PageWrapper'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import CompleteProfile from './pages/CompleteProfile'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import AuthCallback from './pages/AuthCallback'
@@ -27,34 +25,10 @@ function PrivateRoute({ children }) {
 
 // Redireciona usuários autenticados para longe das páginas públicas (login/cadastro)
 function PublicOnlyRoute({ children }) {
-  const { user, loading, needsProfileCompletion } = useAuth()
+  const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
-  if (user && needsProfileCompletion) return <Navigate to="/completar-perfil" replace />
   if (user) return <Navigate to="/dashboard" replace />
   return children
-}
-
-// Guard específico para OAuth: redireciona quem tem perfil para fora do /completar-perfil
-function CompleteProfileRoute({ children }) {
-  const { user, loading, profileChecked, needsProfileCompletion } = useAuth()
-  if (loading || !profileChecked) return <LoadingScreen />
-  if (!user) return <Navigate to="/login" replace />
-  if (!needsProfileCompletion) return <Navigate to="/dashboard" replace />
-  return children
-}
-
-// Watcher global — redireciona qualquer usuário autenticado sem perfil para /completar-perfil
-function ProfileGuard() {
-  const { user, needsProfileCompletion } = useAuth()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (user && needsProfileCompletion) {
-      navigate('/completar-perfil', { replace: true })
-    }
-  }, [needsProfileCompletion, user, navigate])
-
-  return null
 }
 
 function LoadingScreen() {
@@ -71,7 +45,6 @@ function LoadingScreen() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ProfileGuard />
       <Routes>
         {/* Páginas públicas */}
         <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
@@ -84,12 +57,6 @@ export default function App() {
         <Route
           path="/cadastro"
           element={<PublicOnlyRoute><PageWrapper><Register /></PageWrapper></PublicOnlyRoute>}
-        />
-
-        {/* Completar perfil — só para usuários OAuth sem perfil */}
-        <Route
-          path="/completar-perfil"
-          element={<CompleteProfileRoute><PageWrapper><CompleteProfile /></PageWrapper></CompleteProfileRoute>}
         />
 
         {/* Recuperação de senha */}

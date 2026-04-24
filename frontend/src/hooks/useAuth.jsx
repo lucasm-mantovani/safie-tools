@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '../services/supabase'
 import { api } from '../services/api'
 
@@ -8,39 +8,22 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [profileChecked, setProfileChecked] = useState(false)
-
-  // Bloqueia fetchProfile durante fluxo de signUp para evitar redirect prematuro
-  const isRegistering = useRef(false)
-
-  const needsProfileCompletion = !loading && profileChecked && user !== null && profile === null
 
   useEffect(() => {
     let mounted = true
 
-    // Timeout de segurança: garante que loading resolve mesmo se Supabase travar
-    // Não chama setProfileChecked(true) — se o fetch falhou, não redirecionar para completar-perfil
     const timeoutId = setTimeout(() => {
-      if (mounted) {
-        setLoading(false)
-      }
+      if (mounted) setLoading(false)
     }, 8000)
 
-    // Bootstrap: define auth imediatamente e busca perfil em background
-    // loading=false logo após saber o estado de auth para evitar tela de carregamento longa
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
       clearTimeout(timeoutId)
       setUser(session?.user ?? null)
       setLoading(false)
-      if (session?.user && !isRegistering.current) {
-        fetchProfile(session.user.id)
-      } else {
-        setProfileChecked(true)
-      }
+      if (session?.user) fetchProfile(session.user.id)
     })
 
-    // Listener: apenas para mudanças de estado após o bootstrap
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
       if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') return
@@ -48,12 +31,9 @@ export function AuthProvider({ children }) {
       setUser(session?.user ?? null)
 
       if (session?.user) {
-        if (!isRegistering.current) {
-          await fetchProfile(session.user.id)
-        }
+        await fetchProfile(session.user.id)
       } else {
         setProfile(null)
-        setProfileChecked(false)
         setLoading(false)
       }
     })
@@ -72,76 +52,26 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', userId)
         .single()
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Perfil genuinamente não existe — confirmar para acionar o redirect correto
-          setProfile(null)
-          setProfileChecked(true)
-        }
-        // Outros erros (rede, permissão, etc.): não altera estado
-        // profileChecked fica false → needsProfileCompletion fica false → sem redirect falso
-        return
-      }
-      setProfile(data)
-      setProfileChecked(true)
+      if (!error && data) setProfile(data)
     } catch {
-      // Erro de rede: não altera estado → sem redirect falso para completar-perfil
+      // Erro de rede: mantém profile atual
     }
   }
 
-  // Login: backend valida credenciais e aplica rate limit; Supabase client armazena sessão nativamente
   async function signIn(email, password) {
-    // Valida credenciais e aplica rate limiting no backend
     await api.post('/auth/login', { email, password })
-
-    // Faz login diretamente no Supabase para garantir que a sessão seja armazenada
-    // pelo mecanismo nativo (localStorage), evitando problemas com setSession + PKCE
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-
-    // Busca perfil imediatamente para evitar race condition entre navigate e o listener de auth
     await fetchProfile(data.user.id)
-
     return data
   }
 
-  // Registro via backend (valida, cria usuário, cria perfil, envia e-mail de confirmação)
   async function signUp(formData) {
     const { full_name, email, password, phone, company_name, business_segment } = formData
-
-    isRegistering.current = true
-    try {
-      await api.post('/auth/register', { full_name, email, password, phone, company_name, business_segment })
-      // Após registro via backend, o usuário deve confirmar o e-mail antes de logar
-      // Retorna sem sessão — a UI deve mostrar mensagem de confirmação
-      return { needsEmailConfirmation: true }
-    } finally {
-      isRegistering.current = false
-    }
+    await api.post('/auth/register', { full_name, email, password, phone, company_name, business_segment })
+    return { needsEmailConfirmation: true }
   }
 
-  // Cria perfil para usuários que não completaram o cadastro
-  // Usa o backend (service role key) em vez do Supabase direto para evitar bloqueios de RLS e token refresh
-  async function registerProfile(formData) {
-    const { full_name, phone, company_name, business_segment } = formData
-
-    const { data } = await api.post('/auth/complete-profile', {
-      user_id: user.id,
-      full_name,
-      email: user.email,
-      phone,
-      company_name,
-      business_segment,
-    })
-
-    setProfile(data.profile)
-    setProfileChecked(true)
-
-    return data.profile
-  }
-
-  // Logout global — invalida todas as sessões no servidor
   async function signOut() {
     try {
       await api.post('/auth/logout')
@@ -150,7 +80,6 @@ export function AuthProvider({ children }) {
     } finally {
       setUser(null)
       setProfile(null)
-      setProfileChecked(false)
       await supabase.auth.signOut()
     }
   }
@@ -173,12 +102,9 @@ export function AuthProvider({ children }) {
         user,
         profile,
         loading,
-        profileChecked,
-        needsProfileCompletion,
         signIn,
         signUp,
         signOut,
-        registerProfile,
         refreshProfile,
         forgotPassword,
         resetPassword,

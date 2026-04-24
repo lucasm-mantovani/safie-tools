@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { register, checkProfile, getProfile, updateProfile } from '../controllers/authController.js'
+import { getProfile, updateProfile } from '../controllers/authController.js'
 import {
   registerUser, loginUser, logoutUser,
   getGoogleOAuthUrl, handleOAuthCallback,
@@ -8,7 +8,7 @@ import {
 } from '../controllers/authNewController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
 import { authLimiter } from '../utils/rateLimiter.js'
-import { validate, registerSchema, updateProfileSchema } from '../utils/validators.js'
+import { validate, updateProfileSchema } from '../utils/validators.js'
 
 const router = Router()
 
@@ -34,14 +34,6 @@ router.post('/reset-password', resetPassword)
 // Gestão de sessões ativas
 router.get('/sessions', authMiddleware, listSessions)
 router.delete('/sessions/:id', authMiddleware, revokeSession)
-
-// ── Rotas legadas (mantidas para compatibilidade durante migração) ────────────
-
-// Cria perfil para usuário já autenticado (fluxo OAuth legacy)
-router.post('/complete-profile', authLimiter, authMiddleware, validate(registerSchema), register)
-
-// Verificação de perfil OAuth
-router.get('/profile/check', authMiddleware, checkProfile)
 
 // Perfil do usuário autenticado
 router.get('/profile', authMiddleware, getProfile)
