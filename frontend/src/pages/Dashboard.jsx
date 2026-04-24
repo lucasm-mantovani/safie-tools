@@ -93,10 +93,10 @@ const FERRAMENTAS = [
     nome: 'Fast Due Diligence',
     nomeCompleto: 'Fast Due Diligence',
     descricao: 'Gere um checklist personalizado para captação, M&A ou venda de participação.',
-    tempo: '3–5 min',
+    tempo: '20–30 min',
     Icon: IconDocument,
     cor: '#8b5cf6',
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     slug: 'litigation-cost',
