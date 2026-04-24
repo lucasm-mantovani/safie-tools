@@ -109,7 +109,8 @@ export async function uploadAvatar(req, res, next) {
 
     const { data: urlData } = supabaseAdmin.storage.from('avatars').getPublicUrl(path)
 
-    await supabaseAdmin.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', req.user.id)
+    const { error: updateError } = await supabaseAdmin.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', req.user.id)
+    if (updateError) throw updateError
 
     res.json({ avatar_url: urlData.publicUrl })
   } catch (err) {

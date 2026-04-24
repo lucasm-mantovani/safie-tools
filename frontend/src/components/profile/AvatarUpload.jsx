@@ -25,6 +25,7 @@ export default function AvatarUpload({ currentUrl, onUpload }) {
   const [croppedArea, setCroppedArea] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [uploadedUrl, setUploadedUrl] = useState(null)
   const inputRef = useRef(null)
   const { refreshProfile } = useAuth()
 
@@ -63,9 +64,10 @@ export default function AvatarUpload({ currentUrl, onUpload }) {
       const formData = new FormData()
       formData.append('avatar', blob, 'avatar.webp')
       const { data } = await api.post('/profile/avatar', formData)
+      setUploadedUrl(data.avatar_url)
+      setImageSrc(null)
       onUpload?.(data.avatar_url)
       await refreshProfile?.()
-      setImageSrc(null)
     } catch (err) {
       setError(err.message || 'Falha ao enviar avatar.')
     } finally {
@@ -98,8 +100,8 @@ export default function AvatarUpload({ currentUrl, onUpload }) {
       onClick={() => inputRef.current?.click()}
       className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-gray-300 rounded-[16px] cursor-pointer hover:border-primary transition-colors"
     >
-      {currentUrl ? (
-        <img src={currentUrl} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />
+      {(uploadedUrl || currentUrl) ? (
+        <img src={uploadedUrl || currentUrl} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />
       ) : (
         <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
           <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

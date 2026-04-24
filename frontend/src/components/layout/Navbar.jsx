@@ -4,7 +4,10 @@ import { useAuth } from '../../hooks/useAuth'
 import Button from '../ui/Button'
 
 // Avatar com inicial do nome
-function UserAvatar({ name }) {
+function UserAvatar({ name, avatarUrl }) {
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name || 'Avatar'} className="w-8 h-8 rounded-full object-cover shrink-0" />
+  }
   const initial = name?.charAt(0)?.toUpperCase() || 'U'
   return (
     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
@@ -30,7 +33,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link to={user ? '/dashboard' : '/'} className="flex items-center gap-2 group">
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -58,7 +61,7 @@ export default function Navbar() {
                   onClick={() => setMenuOpen((v) => !v)}
                   className="flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-full hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all duration-200"
                 >
-                  <UserAvatar name={profile?.full_name} />
+                  <UserAvatar name={profile?.full_name} avatarUrl={profile?.avatar_url} />
                   {firstName && (
                     <span className="font-cta text-sm font-medium text-gray-700">{firstName}</span>
                   )}
@@ -132,7 +135,7 @@ export default function Navbar() {
           {user ? (
             <>
               <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                <UserAvatar name={profile?.full_name} />
+                <UserAvatar name={profile?.full_name} avatarUrl={profile?.avatar_url} />
                 <div>
                   <p className="font-cta text-sm font-semibold text-gray-900">{profile?.full_name || 'Usuário'}</p>
                   <p className="font-body text-xs text-gray-400">{user.email}</p>
